@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GLESEC SKYWATCH Monitor Walls
 // @namespace    glesec-tools
-// @version      1.0.13
+// @version      1.0.14
 // @description  Restyle all 6 GLESEC SKYWATCH SOC monitor walls in place, driven by the walls' own live data. Generated — edit redesign/ source, not this file.
 // @author       GLESEC GOC
 // @match        https://intranet.glesec.com/radar-wall/*
@@ -1822,8 +1822,8 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
       if (!document.getElementById('sw-anim')) {
         var a = document.createElement('style');
         a.id = 'sw-anim'; a.textContent = '@keyframes sw-pulse{0%,100%{opacity:1}50%{opacity:.25}}' +
-          '.sw-eye{width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-sizing:border-box;' +
-          'border-radius:9px;background:rgba(16,16,20,0.72);border:1px solid rgba(255,255,255,0.14);color:#a1a1aa;' +
+          '.sw-eye{width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-sizing:border-box;' +
+          'border-radius:10px;background:rgba(16,16,20,0.72);border:1px solid rgba(255,255,255,0.14);color:#a1a1aa;' +
           '-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:background .15s,color .15s,border-color .15s}' +
           '.sw-eye:hover{color:#fafafa;background:rgba(28,28,34,0.92);border-color:rgba(255,255,255,0.30)}';
         head.appendChild(a);
@@ -1930,7 +1930,7 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     var b = makeEye('sw-eye-hide', 'Hide redesign — show original wall');
     b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); setEye(true); });
     var bar = root.querySelector('.sw-topbar');
-    if (bar) { b.style.position = 'relative'; b.style.flex = '0 0 auto'; b.style.marginLeft = '14px'; bar.appendChild(b); }
+    if (bar) { b.style.position = 'relative'; b.style.flex = '0 0 auto'; bar.appendChild(b); }   // topbar's 18px flex gap handles spacing
     else { b.style.position = 'absolute'; b.style.top = '10px'; b.style.right = '10px'; b.style.zIndex = '60'; root.appendChild(b); }
   }
   function ensureShowEye() {
