@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GLESEC SKYWATCH Monitor Walls
 // @namespace    glesec-tools
-// @version      1.0.12
+// @version      1.0.13
 // @description  Restyle all 6 GLESEC SKYWATCH SOC monitor walls in place, driven by the walls' own live data. Generated — edit redesign/ source, not this file.
 // @author       GLESEC GOC
 // @match        https://intranet.glesec.com/radar-wall/*
@@ -1821,7 +1821,11 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
       }
       if (!document.getElementById('sw-anim')) {
         var a = document.createElement('style');
-        a.id = 'sw-anim'; a.textContent = '@keyframes sw-pulse{0%,100%{opacity:1}50%{opacity:.25}}';
+        a.id = 'sw-anim'; a.textContent = '@keyframes sw-pulse{0%,100%{opacity:1}50%{opacity:.25}}' +
+          '.sw-eye{width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-sizing:border-box;' +
+          'border-radius:9px;background:rgba(16,16,20,0.72);border:1px solid rgba(255,255,255,0.14);color:#a1a1aa;' +
+          '-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:background .15s,color .15s,border-color .15s}' +
+          '.sw-eye:hover{color:#fafafa;background:rgba(28,28,34,0.92);border-color:rgba(255,255,255,0.30)}';
         head.appendChild(a);
       }
     } catch (e) {}
@@ -1882,7 +1886,10 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
   })();
 
   /* ---- 3. lifecycle state -------------------------------------------------- */
-  var state = { node: null, host: null, prev: null, account: null, rendered: false, lastGoodAt: 0, suppress: false };
+  var state = { node: null, host: null, showEye: null, eyeHidden: false, prev: null, account: null, rendered: false, lastGoodAt: 0, suppress: false };
+  // per-tab eye toggle (sessionStorage is genuinely per-tab AND survives reload incl. PRTG's 120s
+  // location.reload — and needs no GM grant, which @grant none wouldn't have anyway).
+  try { state.eyeHidden = sessionStorage.getItem('sw-eye-' + wall.slug) === '1'; } catch (e) {}
 
   function buildSources() {
     return {
@@ -1906,10 +1913,43 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     var h = document.createElement('div');
     h.id = 'sw-overlay-host';
     h.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:2147483646;margin:0;padding:0;' +
-      'background:#08080a;overflow:hidden;display:flex;align-items:center;justify-content:center;';
+      'background:#08080a;overflow:hidden;align-items:center;justify-content:center;display:' + (state.eyeHidden ? 'none' : 'flex') + ';';
     (document.body || document.documentElement).appendChild(h);
     state.host = h;
     return h;
+  }
+
+  /* ---- eye toggle: hide the WHOLE overlay -> show the original wall (per-tab, persisted) ----
+     One eye sits in the overlay's top bar (the wall's top-right); one restore eye is fixed on the
+     real page, shown only while hidden. display:none on the host fully removes our layer, so the
+     original wall is visible AND interactive underneath; the restore eye floats above it. */
+  var EYE_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+  function makeEye(id, title) { var b = document.createElement('div'); b.id = id; b.className = 'sw-eye'; b.title = title; b.setAttribute('role', 'button'); b.innerHTML = EYE_SVG; return b; }
+  function addHideEye(root) {
+    if (!root || root.querySelector('#sw-eye-hide')) return;
+    var b = makeEye('sw-eye-hide', 'Hide redesign — show original wall');
+    b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); setEye(true); });
+    var bar = root.querySelector('.sw-topbar');
+    if (bar) { b.style.position = 'relative'; b.style.flex = '0 0 auto'; b.style.marginLeft = '14px'; bar.appendChild(b); }
+    else { b.style.position = 'absolute'; b.style.top = '10px'; b.style.right = '10px'; b.style.zIndex = '60'; root.appendChild(b); }
+  }
+  function ensureShowEye() {
+    if (state.showEye && state.showEye.parentNode) { state.showEye.style.display = state.eyeHidden ? 'flex' : 'none'; return; }
+    var b = state.showEye || makeEye('sw-eye-show', 'Show redesigned wall');
+    b.style.position = 'fixed'; b.style.top = '12px'; b.style.right = '12px'; b.style.zIndex = '2147483647';
+    if (!b.__wired) { b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); setEye(false); }); b.__wired = true; }
+    (document.body || document.documentElement).appendChild(b);
+    state.showEye = b;
+    b.style.display = state.eyeHidden ? 'flex' : 'none';
+  }
+  function applyEyeState() {
+    if (state.host) state.host.style.display = state.eyeHidden ? 'none' : 'flex';
+    ensureShowEye();
+  }
+  function setEye(hidden) {
+    state.eyeHidden = hidden;
+    try { sessionStorage.setItem('sw-eye-' + wall.slug, hidden ? '1' : '0'); } catch (e) {}
+    applyEyeState();
   }
   function scaleToFit() {
     if (!state.node) return;
@@ -1932,6 +1972,8 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     host.appendChild(node);
     state.node = node;
     scaleToFit();                                       // contain-scale to the current viewport
+    addHideEye(node);                                   // eye control in the wall's top bar
+    applyEyeState();                                    // respect a persisted "hidden" choice
     state.suppress = false;
   }
 
@@ -2006,7 +2048,7 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     if (!el) {
       el = document.createElement('div');
       el.id = 'sw-ind';
-      el.style.cssText = 'position:fixed;top:9px;right:14px;z-index:99999;display:flex;align-items:center;gap:7px;' +
+      el.style.cssText = 'position:fixed;bottom:12px;right:16px;z-index:99999;display:flex;align-items:center;gap:7px;' +
         'font:600 11px Inter,ui-sans-serif,sans-serif;letter-spacing:.04em;pointer-events:none;';
       state.node.appendChild(el);
     }
@@ -2041,6 +2083,7 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
       if (!state.host || !state.host.parentNode || (document.body && !document.body.contains(state.host)) || state.node.parentNode !== state.host) {
         place(state.node);
       }
+      if (state.showEye && !state.showEye.parentNode) ensureShowEye();   // re-add restore eye if the page wiped body
     });
     obs.observe(document.body, { childList: true });
   }
@@ -2050,6 +2093,7 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     ensureStyles();                                     // head is stable now — this injection persists
     window.addEventListener('resize', scaleToFit);      // keep the design contain-scaled to the viewport
     startObserver();
+    applyEyeState();                                     // restore the per-tab eye choice (show original if hidden)
     if (wall.cls === 'B') showSkeleton();               // paint shaped skeleton up front
     tryRender('init');                                  // Class A renders now from initialData
   }
