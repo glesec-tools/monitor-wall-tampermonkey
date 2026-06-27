@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GLESEC SKYWATCH Monitor Walls
 // @namespace    glesec-tools
-// @version      1.0.36
+// @version      1.0.37
 // @description  Restyle all 6 GLESEC SKYWATCH SOC monitor walls in place, driven by the walls' own live data. Generated — edit redesign/ source, not this file.
 // @author       GLESEC GOC
 // @match        https://intranet.glesec.com/radar-wall/*
@@ -526,6 +526,12 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     // rotating radar sweep — 5s / 360°, light-blue with a smoothly fading glow trail.
     // CSS conic-gradient (genuinely smooth, no chunks) layered behind the svg so the radar draws over it.
     const wrap = h('div', { class: 'flex center', style: { position: 'relative', height: '100%', width: '100%' } });
+    // Class B wall: the fan-out re-renders the radar ~5-8x in the first seconds, and each rebuild
+    // would restart this CSS animation from 0deg (visible "jump back"). Anchor it to a GLOBAL 5s
+    // timeline via a negative animation-delay = -(now mod 5000)ms, so every freshly-built sweep
+    // resumes at the exact phase a continuous spin would be at — no restart, purely visual.
+    const SWEEP_MS = 5000;
+    const sweepDelay = '-' + Math.round((typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now()) % SWEEP_MS) + 'ms';
     const sweepEl = h('div', {
       style: {
         position: 'absolute', inset: '0', margin: 'auto', pointerEvents: 'none', zIndex: '2',
@@ -535,7 +541,8 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
         // cut the sweep right at the core edge (r=59) so it tucks under the core instead of washing over "74%"
         mask: 'radial-gradient(circle at center, transparent 58px, #000 64px)',
         WebkitMask: 'radial-gradient(circle at center, transparent 58px, #000 64px)',
-        animation: 'sweep 5s linear infinite'
+        animation: 'sweep 5s linear infinite',
+        animationDelay: sweepDelay
       }
     });
     // leading "sweep arm" — a brighter line with a slight glow at the front of the trail
@@ -1903,6 +1910,13 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
   var STALE_AFTER = 180000;   // ms with no good render before we flag "stale"
   var log = function () { try { console.log.apply(console, ['[SW ' + wall.slug + ']'].concat([].slice.call(arguments))); } catch (e) {} };
 
+  // Page <head> title: the original walls carry weird/generic titles (and wall ids). Set a clean,
+  // index-free per-wall title (reuse the wall's own top-bar title) and re-assert it on a timer so
+  // the page's load/poll/reload can't clobber it.
+  var PAGE_TITLE = (wall.skel && wall.skel.topbar && wall.skel.topbar.title) || 'GLESEC SOC';
+  function setTitle() { try { if (document.title !== PAGE_TITLE) document.title = PAGE_TITLE; } catch (e) {} }
+  setTitle();   // best-effort at document-start; re-asserted in boot() + the 1s tick
+
   // Inject (and keep pinned) the design system + the boot-only refresh-pulse keyframe.
   // A document-start <style> on documentElement is dropped by some walls during load, so we
   // re-assert at DOMContentLoaded (head stable) and whenever it goes missing.
@@ -2198,6 +2212,7 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     try {
       if (state.node) { var c = state.node.querySelector('#sw-clock'); if (c && SW.nowStr) c.textContent = SW.nowStr(); }
     } catch (e) {}
+    setTitle();            // keep the <head> title pinned
     markStaleMaybe();
   }, 1000);
 
@@ -2219,6 +2234,7 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
   /* ---- 6. go ---------------------------------------------------------------- */
   function boot() {
     ensureStyles();                                     // head is stable now — this injection persists
+    setTitle();                                         // clean <head> title (head exists now)
     window.addEventListener('resize', function () { scaleToFit(); positionRestoreEye(); });   // keep design + restore-eye aligned
     startObserver();
     applyEyeState();                                     // restore the per-tab eye choice (show original if hidden)
