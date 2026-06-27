@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GLESEC SKYWATCH Monitor Walls
 // @namespace    glesec-tools
-// @version      1.0.35
+// @version      1.0.36
 // @description  Restyle all 6 GLESEC SKYWATCH SOC monitor walls in place, driven by the walls' own live data. Generated — edit redesign/ source, not this file.
 // @author       GLESEC GOC
 // @match        https://intranet.glesec.com/radar-wall/*
@@ -740,29 +740,40 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
 
   function adapt(s) {
     const radar = s.all('get-widget-data-radar');
-    const rows = []; let posture = null;
+    // The fan-out returns THREE distinct widgets (same endpoint, different POST widget id):
+    //   16 CSA-TOP-RISK-DOMAIN     -> the radar surface  (labels: cust_name,domain,risk,service,...)
+    //   17 CSA-POSTURE-TREND       -> trajectory
+    //   18 CSA-CONTRIBUTING-CONDITIONS -> individual signals (labels add _time + severity)
+    // Dispatch by labels (the response carries no widget id): a `trajectory` column => posture;
+    // a `_time`/`severity` column => a contributing-condition row; otherwise a domain-risk row.
+    // Keeping them SEPARATE matters: the radar must show the domain aggregate, not be spiked by an
+    // individual critical condition, and the conditions list must be the signals, not domain rows.
+    const domainRows = []; const condRows = []; let posture = null;
     radar.forEach(resp => {
       if (!resp || !Array.isArray(resp.data)) return;
       const labels = resp.data_labels || [];
-      const isTraj = colIdx(labels, 'trajectory') >= 0;
-      resp.data.forEach(row => {
-        if (!Array.isArray(row)) return;
-        if (isTraj) {
+      if (colIdx(labels, 'trajectory') >= 0) {
+        resp.data.forEach(row => {
+          if (!Array.isArray(row)) return;
           posture = {
             trajectory: String(cell(row, labels, 'trajectory') || '').toLowerCase(),
             improving: +cell(row, labels, 'improving_domains') || 0,
             stable: +cell(row, labels, 'stable_domains') || 0,
             worsening: +cell(row, labels, 'worsening_domains') || 0
           };
-          return;
-        }
+        });
+        return;
+      }
+      const isCondition = colIdx(labels, '_time') >= 0 || colIdx(labels, 'severity') >= 0;
+      resp.data.forEach(row => {
+        if (!Array.isArray(row)) return;
         const domain = canonDomain(cell(row, labels, 'domain') !== undefined ? cell(row, labels, 'domain') : cell(row, labels, 'type'));
         const riskRaw = cell(row, labels, 'risk');
         if (!domain || riskRaw == null || riskRaw === '') return;
         const risk = Math.round(+riskRaw);
         if (!isFinite(risk)) return;
         const sevCell = String(cell(row, labels, 'severity') || '').toLowerCase();
-        rows.push({
+        (isCondition ? condRows : domainRows).push({
           domain, risk: Math.max(0, Math.min(100, risk)),
           service: cell(row, labels, 'service') || '',
           signal: cell(row, labels, 'contributing_signal') || '',
@@ -771,20 +782,23 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
       });
     });
 
-    if (!rows.length) return s.prev || null;   // wait for the fan-out to start landing
+    if (!domainRows.length && !condRows.length) return s.prev || null;   // wait for the fan-out
+    // tolerate one widget landing before the other: fall back across types so neither card is blank
+    const domSrc = domainRows.length ? domainRows : condRows;
+    const condSrc = condRows.length ? condRows : domainRows;
 
-    // domains: MAX risk per canonical sector (no-data sectors stay hasData:false, not 0-counted)
+    // domains: MAX domain-aggregate risk per canonical sector (no-data sectors stay hasData:false)
     const best = {};
-    rows.forEach(r => { if (!best[r.domain] || r.risk > best[r.domain].risk) best[r.domain] = r; });
+    domSrc.forEach(r => { if (!best[r.domain] || r.risk > best[r.domain].risk) best[r.domain] = r; });
     const domains = DOMAINS.map(name => best[name] ? { name, score: best[name].risk, hasData: true } : { name, score: 0, hasData: false });
 
-    // top risk domain = highest-risk row overall
-    let top = rows[0]; rows.forEach(r => { if (r.risk > top.risk) top = r; });
+    // top risk domain = highest-risk domain-aggregate row
+    let top = domSrc[0]; domSrc.forEach(r => { if (r.risk > top.risk) top = r; });
     const topDomain = { name: top.domain, score: top.risk, service: top.service, reason: signalLabel(top.signal) };
 
-    // contributing conditions: top distinct (domain+signal) rows by risk
+    // contributing conditions: top distinct (domain+signal) condition rows by risk
     const seen = {};
-    const conditions = rows.slice().sort((a, b) => b.risk - a.risk).filter(r => { const k = r.domain + '|' + r.signal; if (seen[k]) return false; seen[k] = true; return true; })
+    const conditions = condSrc.slice().sort((a, b) => b.risk - a.risk).filter(r => { const k = r.domain + '|' + r.signal; if (seen[k]) return false; seen[k] = true; return true; })
       .slice(0, 10).map(r => ({ domain: r.domain, reason: signalLabel(r.signal), service: r.service, severity: r.severity, risk: r.risk }));
 
     // posture trend: real widget if present, else neutral (active domains treated as stable, no invented movement)
