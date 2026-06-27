@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GLESEC SKYWATCH Monitor Walls
 // @namespace    glesec-tools
-// @version      1.0.14
+// @version      1.0.16
 // @description  Restyle all 6 GLESEC SKYWATCH SOC monitor walls in place, driven by the walls' own live data. Generated — edit redesign/ source, not this file.
 // @author       GLESEC GOC
 // @match        https://intranet.glesec.com/radar-wall/*
@@ -530,7 +530,8 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
       style: {
         position: 'absolute', inset: '0', margin: 'auto', pointerEvents: 'none', zIndex: '2',
         width: (maxR * 2) + 'px', height: (maxR * 2) + 'px', borderRadius: '50%',
-        background: 'conic-gradient(from 0deg, rgba(125,211,252,0.25) 0deg, rgba(125,211,252,0.25) 4deg, rgba(125,211,252,0.1) 34deg, rgba(125,211,252,0) 40deg, transparent 40deg 360deg)',
+        // trail fades out BEHIND the arm: arm leads at 0°/360° (top), trail runs counter-clockwise (320°→360°) since the sweep rotates clockwise
+        background: 'conic-gradient(from 0deg, transparent 0deg 320deg, rgba(125,211,252,0) 320deg, rgba(125,211,252,0.1) 326deg, rgba(125,211,252,0.25) 356deg, rgba(125,211,252,0.25) 360deg)',
         // cut the sweep right at the core edge (r=74) so it tucks under the core instead of washing over "74%"
         mask: 'radial-gradient(circle at center, transparent 73px, #000 79px)',
         WebkitMask: 'radial-gradient(circle at center, transparent 73px, #000 79px)',
@@ -1933,13 +1934,30 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     if (bar) { b.style.position = 'relative'; b.style.flex = '0 0 auto'; bar.appendChild(b); }   // topbar's 18px flex gap handles spacing
     else { b.style.position = 'absolute'; b.style.top = '10px'; b.style.right = '10px'; b.style.zIndex = '60'; root.appendChild(b); }
   }
+  // Place the restore eye at the EXACT on-screen spot/size of the top-bar hide eye (accounting for the
+  // contain-scale), so toggling never makes it jump. Derived from the theme: the wall is 1920x1080
+  // scaled by `s` and centered; topbar height 64, padding-right 30, eye 38 -> the hide eye's box
+  // inside the wall is left=1852, top=13, size=38. At fullscreen (s=1) this is exact.
+  function positionRestoreEye() {
+    var b = state.showEye; if (!b) return;
+    var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080); if (!(s > 0)) s = 1;
+    var wallLeft = (window.innerWidth - 1920 * s) / 2, wallTop = (window.innerHeight - 1080 * s) / 2;
+    b.style.right = 'auto';
+    b.style.left = (wallLeft + 1852 * s) + 'px';
+    b.style.top = (wallTop + 13 * s) + 'px';
+    b.style.width = (38 * s) + 'px';
+    b.style.height = (38 * s) + 'px';
+    b.style.borderRadius = (10 * s) + 'px';
+    var svg = b.querySelector('svg'); if (svg) { svg.setAttribute('width', 20 * s); svg.setAttribute('height', 20 * s); }
+  }
   function ensureShowEye() {
-    if (state.showEye && state.showEye.parentNode) { state.showEye.style.display = state.eyeHidden ? 'flex' : 'none'; return; }
+    if (state.showEye && state.showEye.parentNode) { positionRestoreEye(); state.showEye.style.display = state.eyeHidden ? 'flex' : 'none'; return; }
     var b = state.showEye || makeEye('sw-eye-show', 'Show redesigned wall');
-    b.style.position = 'fixed'; b.style.top = '12px'; b.style.right = '12px'; b.style.zIndex = '2147483647';
+    b.style.position = 'fixed'; b.style.zIndex = '2147483647';
     if (!b.__wired) { b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); setEye(false); }); b.__wired = true; }
     (document.body || document.documentElement).appendChild(b);
     state.showEye = b;
+    positionRestoreEye();
     b.style.display = state.eyeHidden ? 'flex' : 'none';
   }
   function applyEyeState() {
@@ -2091,7 +2109,7 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
   /* ---- 6. go ---------------------------------------------------------------- */
   function boot() {
     ensureStyles();                                     // head is stable now — this injection persists
-    window.addEventListener('resize', scaleToFit);      // keep the design contain-scaled to the viewport
+    window.addEventListener('resize', function () { scaleToFit(); positionRestoreEye(); });   // keep design + restore-eye aligned
     startObserver();
     applyEyeState();                                     // restore the per-tab eye choice (show original if hidden)
     if (wall.cls === 'B') showSkeleton();               // paint shaped skeleton up front
