@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GLESEC SKYWATCH Monitor Walls
 // @namespace    glesec-tools
-// @version      1.0.29
+// @version      1.0.30
 // @description  Restyle all 6 GLESEC SKYWATCH SOC monitor walls in place, driven by the walls' own live data. Generated — edit redesign/ source, not this file.
 // @author       GLESEC GOC
 // @match        https://intranet.glesec.com/radar-wall/*
@@ -1344,59 +1344,14 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
 (function () {
   const { h, svg, card, badge, shell } = window.SW;
   const MW = 1000, MH = 500;
-  const COUNTRY = {
-    china: [104, 35], germany: [10, 51], singapore: [104, 1.3], netherlands: [5.3, 52],
-    brazil: [-51, -10], spain: [-3, 40], argentina: [-64, -34],
-    russia: [60, 60], 'united states': [-98, 39], india: [79, 22],
-    bulgaria: [25, 42], france: [2, 47], 'united kingdom': [-1, 53], panama: [-80, 9],
-    // expanded so most feed rows resolve to a source point
-    italy: [12, 42], canada: [-106, 56], japan: [138, 36], 'south korea': [127, 37],
-    ukraine: [31, 49], poland: [19, 52], turkey: [35, 39], vietnam: [108, 14],
-    indonesia: [113, -1], iran: [53, 32], mexico: [-102, 23], australia: [134, -25],
-    romania: [25, 46], sweden: [18, 60], switzerland: [8, 47], 'hong kong': [114, 22],
-    taiwan: [121, 24], thailand: [101, 15], 'south africa': [24, -29], colombia: [-74, 4],
-    chile: [-71, -35], 'czech republic': [15, 50], czechia: [15, 50], finland: [26, 64],
-    norway: [9, 61], denmark: [10, 56], belgium: [4.5, 50], austria: [14, 47],
-    ireland: [-8, 53], portugal: [-8, 39], greece: [22, 39], israel: [35, 31],
-    'saudi arabia': [45, 24], 'united arab emirates': [54, 24], egypt: [30, 27],
-    nigeria: [8, 9], kenya: [38, 0], pakistan: [70, 30], bangladesh: [90, 24],
-    malaysia: [102, 4], philippines: [122, 13], 'new zealand': [172, -41], peru: [-75, -10],
-    ecuador: [-78, -1], venezuela: [-66, 7], 'costa rica': [-84, 10], hungary: [20, 47],
-    'united-kingdom': [-1, 53], 'united-states': [-98, 39]
-  };
-  // normalize the DOM country string (hyphens, common aliases) to a COUNTRY key
-  const COUNTRY_ALIAS = {
-    usa: 'united states', us: 'united states', uk: 'united kingdom', uae: 'united arab emirates',
-    'korea south': 'south korea', 'republic of korea': 'south korea', 'viet nam': 'vietnam',
-    'russian federation': 'russia', 'czech republic': 'czechia'
-  };
-  const coordFor = (raw) => {
-    if (!raw) return null;
-    let k = String(raw).toLowerCase().trim().replace(/[-_]+/g, ' ').replace(/\s+/g, ' ');
-    if (COUNTRY[k]) return COUNTRY[k];
-    if (COUNTRY_ALIAS[k] && COUNTRY[COUNTRY_ALIAS[k]]) return COUNTRY[COUNTRY_ALIAS[k]];
-    return null;
-  };
-  // deterministic 0..1 pseudo-random from a string seed (FNV-1a) — used to fan out arcs
-  const hashSeed = (s) => { let h = 2166136261; s = String(s); for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0) / 4294967295; };
-  // Receiving hubs = GLESEC's defended POPs, geolocated from the DESTINATION IP (real per-row data,
-  // not a guess) — exactly the 3 points the original map flies into:
-  //   Panama City (Cable & Wireless 200.46.x — Organo Judicial), and GLESEC's US scrubbing
-  //   centers New York (66.22.x) and Atlanta (72.17.x).
-  const HUB_CITY = { 'Panama City': [-79.5, 9.0], 'New York': [-74.0, 40.7], 'Atlanta': [-84.4, 33.7] };
-  const DEST_PREFIX = [
-    ['200.46', 'Panama City'], ['179.63', 'Panama City'], ['190.34', 'Panama City'],
-    ['66.22', 'New York'], ['72.17', 'Atlanta']
-  ];
-  const CITY_LIST = ['Panama City', 'New York', 'Atlanta'];
-  const cityFor = (dst) => {
-    const ip = String(dst || '');
-    for (let k = 0; k < DEST_PREFIX.length; k++) if (ip.indexOf(DEST_PREFIX[k][0]) === 0) return DEST_PREFIX[k][1];
-    return CITY_LIST[Math.floor(hashSeed(ip) * CITY_LIST.length) % CITY_LIST.length]; // unknown dst -> stable among the 3
-  };
+  // NO hardcoded geography. Every source AND destination point comes from the wall's own
+  // get-monitor-wall-map-data response (real per-IP geolocation: start_lat/lon -> end_lat/lon),
+  // exactly like the original page feeds its Leaflet migrationLayer. We only PROJECT those
+  // real lat/lon onto the dot-grid (equirectangular), so the points land where the original's do.
   const SEVCOL = { critical: '#ff2d55', high: '#fb923c', medium: '#fbbf24', low: '#34d399' };
   const sevBadgeCls = s => SW.sevClass(s);
   const ll = (lon, lat) => [(lon + 180) / 360 * MW, (90 - lat) / 180 * MH];
+  const fin = n => { const v = +n; return isFinite(v) ? v : null; };
 
   function worldMap(d) {
     const W = window.SW_WORLD || { dots: [], GW: 1, GH: 1 };
@@ -1424,68 +1379,58 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     }
     g.appendChild(land);
 
-    // receiving hubs — one per distinct destination CITY present in the feed (the 3 POPs)
-    const hub = ll(...COUNTRY.panama);                  // fallback
-    const hubs = {};
-    d.feed.forEach(f => {
-      const city = cityFor(f.dst);
-      if (!hubs[city]) hubs[city] = { xy: ll(...HUB_CITY[city]), label: city };
-    });
-
-    // arcs
     const arcs = svg('g');
     const nodes = svg('g');
-    const seen = {};
-    // cap travelling pulses across the feed (SMIL animateMotion is the costly part) — spread evenly
+    // distinct destination points (the POPs) and source points, keyed by rounded real coords
+    const hubs = {};      // "lat,lon" -> { x, y, label }
+    const srcSeen = {};   // "lat,lon" -> true (one blip per distinct source)
+    // cap travelling pulses (SMIL animateMotion is the costly part) — spread evenly across events
     const dotStride = Math.max(1, Math.ceil(d.feed.length / 56));
-    // NOTE perf: NO per-arc drop-shadow filters here. Animating ~150 filtered paths is the FPS
-    // killer (each frame re-runs the filter). Glow is dropped from arcs/dots/source-nodes and kept
-    // only on the few hub cores.
+    // NOTE perf: arcs are STATIC route-lines (painted once). Motion is carried only by the capped
+    // particle set below. No per-arc filters. This keeps ~200 arcs cheap.
     d.feed.forEach((f, i) => {
-      const src = coordFor(f.country); if (!src) return;
-      const [bx, by] = ll(...src);
-      const [hx, hy] = (hubs[cityFor(f.dst)] && hubs[cityFor(f.dst)].xy) || hub;
-      const col = SEVCOL[f.severity] || SEVCOL.high;
-      // fan out arcs: jitter each event's origin + curve from a deterministic seed so many
-      // same-country events spread into a dense bundle (mirrors the original per-IP geolocation)
-      // instead of redrawing one identical centroid->hub line on top of itself.
-      const r1 = hashSeed(f.srcIp + '|' + i), r2 = hashSeed(i + '|' + f.srcIp), r3 = hashSeed('lift' + f.srcIp + i);
-      const x1 = bx + (r1 - 0.5) * 30, y1 = by + (r2 - 0.5) * 22;   // ±15px / ±11px scatter
-      const x2 = hx + (r2 - 0.5) * 9, y2 = hy + (r1 - 0.5) * 9;     // small spread at the hub too
+      const sLat = fin(f.sLat), sLon = fin(f.sLon), eLat = fin(f.eLat), eLon = fin(f.eLon);
+      if (sLat == null || sLon == null || eLat == null || eLon == null) return;   // need real geo
+      const [x1, y1] = ll(sLon, sLat);   // REAL source point
+      const [x2, y2] = ll(eLon, eLat);   // REAL destination point
+      const col = f.color || SEVCOL[f.severity] || SEVCOL.high;   // original's own colour first
+      // gentle bow so overlapping src->dst pairs separate a little (purely cosmetic, not positional)
       const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
       const dx = x2 - x1, dy = y2 - y1; const len = Math.hypot(dx, dy) || 1;
-      const lift = Math.min(165, len * 0.35) + (r3 - 0.5) * 70;     // vary the bow so curves don't coincide
-      const cx = mx + (-dy / len) * lift, cy = my + (dx / len) * lift - 30;
+      const lift = Math.min(150, len * 0.32);
+      const cx = mx + (-dy / len) * lift, cy = my + (dx / len) * lift - 18;
       const path = `M ${x1.toFixed(1)} ${y1.toFixed(1)} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`;
-      // STATIC route line — painted once, zero per-frame cost. (Animating stroke-dashoffset on
-      // ~150 long curved dashed strokes every frame was the real FPS sink.) Motion is carried only
-      // by the capped set of travelling particles below, so the map reads as "live" but stays cheap.
-      const p = svg('path', { d: path, fill: 'none', stroke: col, 'stroke-width': f.severity === 'critical' ? 2 : 1.4, 'stroke-linecap': 'round', opacity: 0.3, 'stroke-dasharray': '5 9' });
-      arcs.appendChild(p);
-      // travelling particle — capped subset carries the flow toward the hub
-      if (i % dotStride === 0) {
-        const dur = (2.6 + (i % 5) * 0.5 + r3 * 1.4).toFixed(1);
+      arcs.appendChild(svg('path', { d: path, fill: 'none', stroke: col, 'stroke-width': f.severity === 'critical' ? 2 : 1.4, 'stroke-linecap': 'round', opacity: 0.32, 'stroke-dasharray': '5 9' }));
+      // travelling particle — capped subset; honour the original's `animate` flag
+      if (f.animate !== false && i % dotStride === 0) {
+        const dur = (2.6 + (i % 5) * 0.5 + ((i * 37) % 13) / 13 * 1.4).toFixed(1);
         const dot = svg('circle', { r: f.severity === 'critical' ? 3.2 : 2.5, fill: '#fff', opacity: 0.95 });
-        const am = svg('animateMotion', { dur: dur + 's', repeatCount: 'indefinite', path, rotate: 'auto' });
-        dot.appendChild(am); arcs.appendChild(dot);
+        dot.appendChild(svg('animateMotion', { dur: dur + 's', repeatCount: 'indefinite', path, rotate: 'auto' }));
+        arcs.appendChild(dot);
       }
-      // source node — one blip per country, anchored at the centroid (not the jittered origin)
-      if (!seen[f.country]) {
-        seen[f.country] = true;
-        nodes.appendChild(svg('circle', { cx: bx, cy: by, r: 9, fill: 'none', stroke: col, 'stroke-width': 1.4, opacity: 0.5, style: `transform-box:fill-box; transform-origin:center; animation:blip 2.6s ease-out infinite;` }));
-        nodes.appendChild(svg('circle', { cx: bx, cy: by, r: 3.2, fill: col }));
+      // one blip per distinct REAL source location
+      const sk = sLat.toFixed(2) + ',' + sLon.toFixed(2);
+      if (!srcSeen[sk]) {
+        srcSeen[sk] = true;
+        nodes.appendChild(svg('circle', { cx: x1, cy: y1, r: 7, fill: 'none', stroke: col, 'stroke-width': 1.3, opacity: 0.5, style: 'transform-box:fill-box;transform-origin:center;animation:blip 2.6s ease-out infinite;' }));
+        nodes.appendChild(svg('circle', { cx: x1, cy: y1, r: 2.8, fill: col }));
       }
+      // register the destination POP (real coords); label by the client(s) defended there
+      const hk = eLat.toFixed(2) + ',' + eLon.toFixed(2);
+      if (!hubs[hk]) hubs[hk] = { x: x2, y: y2, label: f.client || f.destCountry || '' };
     });
     g.appendChild(arcs);
-    // hub markers (cyan burst + blip + core + client label) — drop-shadow kept here (few elements)
-    Object.keys(hubs).forEach(ck => {
-      const [hX, hY] = hubs[ck].xy;
-      g.appendChild(svg('circle', { cx: hX, cy: hY, r: 26, fill: 'url(#hubg)', opacity: 0.6 }));
-      g.appendChild(svg('circle', { cx: hX, cy: hY, r: 16, fill: 'none', stroke: '#22d3ee', 'stroke-width': 1.4, opacity: 0.5, style: 'transform-box:fill-box;transform-origin:center;animation:blip 2.8s ease-out infinite;' }));
-      g.appendChild(svg('circle', { cx: hX, cy: hY, r: 5, fill: '#22d3ee', style: 'filter:drop-shadow(0 0 10px #22d3ee);' }));
-      const t = svg('text', { x: hX, y: hY + 19, 'text-anchor': 'middle', fill: '#7dd3fc', 'font-size': 11, 'font-weight': 700, 'font-family': 'Inter', 'letter-spacing': '0.04em', style: 'paint-order:stroke;stroke:#08080a;stroke-width:3px;stroke-linejoin:round;' });
-      t.textContent = hubs[ck].label;
-      g.appendChild(t);
+    // destination POP markers (cyan burst + blip + core + label) — drop-shadow kept here (few)
+    Object.keys(hubs).forEach(hk => {
+      const H = hubs[hk];
+      g.appendChild(svg('circle', { cx: H.x, cy: H.y, r: 24, fill: 'url(#hubg)', opacity: 0.6 }));
+      g.appendChild(svg('circle', { cx: H.x, cy: H.y, r: 15, fill: 'none', stroke: '#22d3ee', 'stroke-width': 1.4, opacity: 0.5, style: 'transform-box:fill-box;transform-origin:center;animation:blip 2.8s ease-out infinite;' }));
+      g.appendChild(svg('circle', { cx: H.x, cy: H.y, r: 4.5, fill: '#22d3ee', style: 'filter:drop-shadow(0 0 10px #22d3ee);' }));
+      if (H.label) {
+        const t = svg('text', { x: H.x, y: H.y + 18, 'text-anchor': 'middle', fill: '#7dd3fc', 'font-size': 10.5, 'font-weight': 700, 'font-family': 'Inter', 'letter-spacing': '0.04em', style: 'paint-order:stroke;stroke:#08080a;stroke-width:3px;stroke-linejoin:round;' });
+        t.textContent = H.label;
+        g.appendChild(t);
+      }
     });
     g.appendChild(nodes);
     return g;
@@ -1534,7 +1479,7 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
         border: '1px solid var(--border)', fontSize: '11.5px', color: 'var(--fg-muted)', letterSpacing: '0.04em'
       }
     }, h('span', { style: { width: '9px', height: '9px', borderRadius: '50%', background: '#22d3ee', boxShadow: '0 0 10px #22d3ee' } }),
-      'Defended POPs · ' + ([...new Set((d.feed || []).map(f => cityFor(f.dst)))].join(' · ') || 'assets'));
+      'Defended · ' + ([...new Set((d.feed || []).map(f => f.client).filter(Boolean))].slice(0, 3).join(' · ') || 'assets'));
     const mapSvgEl = worldMap(d);   // display-only — zoom/pan removed (it was unused on the wall)
     const mapCard = card({ title: 'Live Attack Map', sub: 'Inbound · MSS-DDOS', accent: 'cyan', meta: 'realtime', bodyClass: 'nopad', class: 'grow' },
       h('div', { style: { position: 'relative', height: '100%', minHeight: '0' } }, mapSvgEl, legend, hubTag));
@@ -1603,15 +1548,40 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     const doc = s.doc;
     const counters = { '1h': counterFrom(doc, 'element696'), '24h': counterFrom(doc, 'element697'), '7d': counterFrom(doc, 'element698') };
 
-    // feed: one .content_scroll ul, cells appended in groups of 7
-    const cells = [].slice.call(doc.querySelectorAll('.content_scroll ul li'));
-    const feed = [];
-    for (let i = 0; i + 6 < cells.length; i += 7) {
-      const country = txt(cells[i + 3]).toLowerCase();
-      const severity = txt(cells[i + 5]).toLowerCase();
-      const client = txt(cells[i]);
-      if (!client && !txt(cells[i + 2])) continue;
-      feed.push({ client: client, vector: txt(cells[i + 1]), srcIp: txt(cells[i + 2]), country: country, dst: txt(cells[i + 4]), severity: severity, action: txt(cells[i + 6]) });
+    // PRIMARY — geocoded events straight from the wall's own get-monitor-wall-map-data response
+    // (real per-IP start_lat/lon -> end_lat/lon + colour/severity), the SAME rows the original
+    // page feeds to its Leaflet migrationLayer. One response per account; keep the latest per
+    // account (a later null response clears a client whose attacks aged out).
+    const responses = (s.all && s.all('get-monitor-wall-map-data')) || [];
+    const byClient = {};
+    responses.forEach(j => { if (j && j.client) byClient[j.client] = j; });
+    let feed = [];
+    Object.keys(byClient).forEach(name => {
+      const j = byClient[name], L = j.data_labels;
+      if (!Array.isArray(j.data) || !L) return;
+      const idx = n => L.findIndex(x => String(x).toLowerCase() === n);
+      const I = { sl: idx('start_lat'), so: idx('start_lon'), el: idx('end_lat'), eo: idx('end_lon'), src: idx('src'), dst: idx('dest'), sc: idx('src_country'), dc: idx('dest_country'), sev: idx('severity'), col: idx('color'), vec: idx('source_index'), an: idx('animate') };
+      j.data.forEach(v => {
+        const sLat = +v[I.sl], sLon = +v[I.so], eLat = +v[I.el], eLon = +v[I.eo];
+        if (![sLat, sLon, eLat, eLon].every(isFinite) || !v[I.src] || !v[I.dst]) return;
+        feed.push({
+          client: j.client, vector: I.vec !== -1 ? (v[I.vec] || '') : '', srcIp: v[I.src], dst: v[I.dst],
+          country: String((I.sc !== -1 && v[I.sc]) || '').toLowerCase(), destCountry: I.dc !== -1 ? (v[I.dc] || '') : '',
+          severity: String((I.sev !== -1 && v[I.sev]) || '').toLowerCase(), color: I.col !== -1 ? (v[I.col] || null) : null,
+          sLat: sLat, sLon: sLon, eLat: eLat, eLon: eLon, animate: I.an === -1 ? true : String(v[I.an]) !== 'false'
+        });
+      });
+    });
+
+    // FALLBACK — before the XHR is seen, scrape the page's own feed list (country names only, no
+    // coords; such rows won't draw arcs but counters/feed still render until the XHR arrives).
+    if (!feed.length) {
+      const cells = [].slice.call(doc.querySelectorAll('.content_scroll ul li'));
+      for (let i = 0; i + 6 < cells.length; i += 7) {
+        const client = txt(cells[i]);
+        if (!client && !txt(cells[i + 2])) continue;
+        feed.push({ client: client, vector: txt(cells[i + 1]), srcIp: txt(cells[i + 2]), country: txt(cells[i + 3]).toLowerCase(), dst: txt(cells[i + 4]), severity: txt(cells[i + 5]).toLowerCase(), action: txt(cells[i + 6]) });
+      }
     }
 
     const totalCount = counters['1h'].critical + counters['1h'].high + counters['24h'].critical + counters['24h'].high + counters['7d'].critical + counters['7d'].high;
@@ -1624,7 +1594,7 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     const sel = doc.getElementById('account_id');
     const account = (sel && sel.selectedOptions && sel.selectedOptions[0] && sel.selectedOptions[0].textContent.trim()) || (s.prev && s.prev.account) || 'All Accounts';
 
-    return { account: account, status: status, counters: counters, feed: feed.slice(0, 150) };
+    return { account: account, status: status, counters: counters, feed: feed.slice(0, 200) };
   }
 
   // change-detection: boot re-renders on every poll (every 5-10s), which rebuilds the SVG and
