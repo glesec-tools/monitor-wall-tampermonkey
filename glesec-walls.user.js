@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GLESEC SKYWATCH Monitor Walls
 // @namespace    glesec-tools
-// @version      1.0.53
+// @version      1.0.54
 // @description  Restyle all 6 GLESEC SKYWATCH SOC monitor walls in place, driven by the walls' own live data. Generated — edit redesign/ source, not this file.
 // @author       GLESEC GOC
 // @match        https://intranet.glesec.com/radar-wall/*
@@ -20,7 +20,7 @@
 
 /* ===== theme.css (exposed for boot)                                    ===== */
 
-window.SW_THEME_CSS = "/* ============================================================================\r\n   SKYWATCH — Unified Monitor-Wall Design System\r\n   shadcn / neutral-dark aesthetic, vivid operational status colors\r\n   Authored for 1920x1080 always-on SOC video walls (display-only).\r\n   ============================================================================ */\r\n@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');\r\n\r\n:root {\r\n  /* ---- neutral surfaces (shadcn \"neutral\" dark, slightly deepened) ---- */\r\n  --bg:            #08080a;\r\n  --bg-grad-a:     #0b0b0e;\r\n  --bg-grad-b:     #060608;\r\n  --surface:       #0f0f12;   /* card */\r\n  --surface-2:     #141418;   /* inner / elevated */\r\n  --surface-3:     #1a1a1f;   /* hover / chips */\r\n  --border:        rgba(255,255,255,0.15);\r\n  --border-2:      rgba(255,255,255,0.24);\r\n  --hairline:      rgba(255,255,255,0.08);\r\n\r\n  /* ---- foreground ---- */\r\n  --fg:            #fafafa;\r\n  --fg-muted:      #a1a1aa;   /* zinc-400 */\r\n  --fg-subtle:     #71717a;   /* zinc-500 */\r\n  --fg-faint:      #52525b;   /* zinc-600 */\r\n\r\n  /* ---- semantic status (vivid, meaningful) ---- */\r\n  --green:   #22c55e;\r\n  --yellow:  #eab308;\r\n  --orange:  #f97316;\r\n  --red:     #ef4444;\r\n  --blue:    #3b82f6;\r\n  --violet:  #8b5cf6;\r\n  --cyan:    #22d3ee;\r\n\r\n  /* threat tiers (GLESEC escalation codes) */\r\n  --t1: #22c55e;   /* NONE  / green  */\r\n  --t2: #eab308;   /* SBEAR / yellow */\r\n  --t3: #f97316;   /* TEAR  / orange */\r\n  --t4: #ef4444;   /* TEVR  / red    */\r\n  --t5: #d4d4d8;   /* INCIDENT / black tier -> light ink on black */\r\n\r\n  /* severity palette — CANONICAL SOURCE is SW.SEV in common.js (these mirror it and are also\r\n     set at runtime from there). Scheme: low=yellow, medium=orange, high=red, critical=pink/red. */\r\n  --sev-critical: #ff2d6e;\r\n  --sev-high:     #ef4444;\r\n  --sev-medium:   #f97316;\r\n  --sev-low:      #eab308;\r\n  --sev-info:     #38bdf8;\r\n\r\n  --radius:    14px;\r\n  --radius-sm: 9px;\r\n  --radius-xs: 7px;\r\n\r\n  --font: 'Inter', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;\r\n  --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;\r\n\r\n  --shadow: 0 1px 0 0 rgba(255,255,255,0.04) inset,\r\n            0 18px 40px -24px rgba(0,0,0,0.9);\r\n}\r\n\r\n* { box-sizing: border-box; }\r\nhtml, body { margin: 0; padding: 0; }\r\n\r\n.sw-root {\r\n  width: 1920px; height: 1080px;\r\n  background:\r\n    radial-gradient(1200px 700px at 78% -10%, rgba(59,130,246,0.05), transparent 60%),\r\n    radial-gradient(1000px 800px at 10% 110%, rgba(139,92,246,0.04), transparent 60%),\r\n    linear-gradient(160deg, var(--bg-grad-a), var(--bg-grad-b));\r\n  color: var(--fg);\r\n  font-family: var(--font);\r\n  font-size: 18px;\r\n  line-height: 1.42;\r\n  letter-spacing: 0.01em;\r\n  -webkit-font-smoothing: antialiased;\r\n  text-rendering: optimizeLegibility;\r\n  display: flex; flex-direction: column;\r\n  overflow: hidden;\r\n  position: relative;\r\n}\r\n.sw-root::before { /* faint grid texture */\r\n  content: \"\"; position: absolute; inset: 0; pointer-events: none;\r\n  background-image:\r\n    linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),\r\n    linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);\r\n  background-size: 48px 48px;\r\n  mask-image: radial-gradient(120% 120% at 50% 0%, #000 30%, transparent 90%);\r\n}\r\n\r\n/* ---------------------------------------------------------------- topbar -- */\r\n.sw-topbar {\r\n  flex: 0 0 auto;\r\n  height: 76px;\r\n  display: flex; align-items: center; gap: 20px;\r\n  padding: 0 34px;\r\n  border-bottom: 1px solid var(--border);\r\n  background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);\r\n  position: relative; z-index: 2;\r\n}\r\n.sw-brand { display: flex; align-items: center; gap: 12px; }\r\n.sw-brand__logo {\r\n  width: 38px; height: 38px; border-radius: 10px;\r\n  background: linear-gradient(180deg, #16191d, #0b0d10);\r\n  border: 1px solid rgba(255,255,255,0.08);\r\n  display: grid; place-items: center; flex: 0 0 auto;\r\n  box-shadow: 0 6px 14px -6px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.12);\r\n}\r\n.sw-brand__logo svg { width: 26px; height: 26px; filter: drop-shadow(0 0 2px rgba(147,232,223,0.85)); }\r\n.sw-brand__name { font-size: 18px; font-weight: 800; letter-spacing: 0.14em; }\r\n.sw-brand__name b { color: var(--fg); }\r\n.sw-brand__name span { color: var(--cyan); }\r\n.sw-brand__div { width: 1px; height: 30px; background: var(--border-2); margin: 0 4px; }\r\n.sw-title {\r\n  font-size: 18px; font-weight: 600; color: var(--fg);\r\n  letter-spacing: 0.02em;\r\n}\r\n.sw-title small { display:block; font-size: 13px; font-weight: 500; color: var(--fg-subtle); letter-spacing: 0.18em; text-transform: uppercase; }\r\n.sw-topbar__spacer { flex: 1 1 auto; }\r\n\r\n.sw-chip {\r\n  display: inline-flex; align-items: center; gap: 10px;\r\n  height: 46px; padding: 0 18px;\r\n  background: var(--surface-2);\r\n  border: 1px solid var(--border);\r\n  border-radius: 11px;\r\n  font-size: 15.5px; color: var(--fg-muted);\r\n  letter-spacing: 0.02em;\r\n}\r\n.sw-chip b { color: var(--fg); font-weight: 600; }\r\n.sw-chip__label { color: var(--fg-faint); text-transform: uppercase; font-size: 12px; letter-spacing: 0.14em; font-weight: 600; }\r\n.sw-clock { font-family: var(--mono); font-weight: 500; font-variant-numeric: tabular-nums; }\r\n\r\n.sw-status {\r\n  --c: var(--green);\r\n  display:inline-flex; align-items:center; gap:10px;\r\n  height:46px; padding:0 20px; border-radius:11px;\r\n  font-size:15px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase;\r\n  background: color-mix(in srgb, var(--c) 13%, transparent);\r\n  border:1px solid color-mix(in srgb, var(--c) 36%, transparent);\r\n  color: color-mix(in srgb, var(--c) 72%, white);\r\n}\r\n.sw-status .dot { width:9px;height:9px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c); animation: pulse 2.4s infinite; }\r\n/* tone follows derived severity so the pill colour never lies */\r\n.sw-status.tone-green  { --c: var(--green); }\r\n.sw-status.tone-yellow { --c: var(--yellow); }\r\n.sw-status.tone-orange { --c: var(--orange); }\r\n.sw-status.tone-red, .sw-status.is-degraded { --c: var(--red); }\r\n/* neutral status shown while loading — claims nothing about live health */\r\n.sw-status.is-loading { --c: var(--fg-subtle); background: var(--surface-3); border-color: var(--border-2); color: var(--fg-subtle); }\r\n.sw-status.is-loading .dot { box-shadow: none; animation: none; }\r\n\r\n/* ---------------------------------------------------------------- footer -- */\r\n/* Original-wall branding/copyright footer (the live walls carry one); kept subtle. */\r\n.sw-footer {\r\n  flex: 0 0 auto;\r\n  height: 34px;\r\n  display: flex; align-items: center; justify-content: center; gap: 20px;\r\n  border-top: 1px solid var(--border);\r\n  background: linear-gradient(0deg, rgba(255,255,255,0.02), transparent);\r\n  position: relative; z-index: 2;\r\n}\r\n.sw-footer__brand { font-size: 14px; font-weight: 800; letter-spacing: 0.16em; color: var(--cyan); }\r\n.sw-footer__brand b { color: var(--fg); font-weight: 700; }\r\n.sw-footer__copy { font-size: 12.5px; color: var(--fg-subtle); letter-spacing: 0.05em; }\r\n\r\n/* --------------------------------------------------------------- content -- */\r\n.sw-main {\r\n  flex: 1 1 auto;\r\n  padding: 24px 34px 26px;\r\n  display: grid;\r\n  gap: 22px;\r\n  position: relative; z-index: 1;\r\n  min-height: 0;\r\n}\r\n\r\n/* ---- card ---- */\r\n.sw-card {\r\n  background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--surface) 88%, #000));\r\n  border: 1.5px solid var(--border);\r\n  border-radius: var(--radius);\r\n  box-shadow: var(--shadow);\r\n  display: flex; flex-direction: column;\r\n  min-height: 0; overflow: hidden;\r\n}\r\n.sw-card__head {\r\n  flex: 0 0 auto;\r\n  display: flex; align-items: center; justify-content: space-between; gap: 18px;\r\n  padding: 17px 24px 15px;\r\n  border-bottom: 1px solid var(--hairline);\r\n}\r\n.sw-card__head-left { display: flex; align-items: center; gap: 13px; min-width: 0; }\r\n.sw-card__head-right { display: flex; align-items: baseline; gap: 16px; flex: 0 0 auto; text-align: right; }\r\n.sw-card__accent { width: 4px; height: 18px; border-radius: 3px; background: var(--fg-faint); flex: 0 0 auto; }\r\n.sw-card__title { font-size: 17.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }\r\n.sw-card__sub { font-size: 14px; font-weight: 500; color: var(--fg-subtle); letter-spacing: 0.04em; white-space: nowrap; }\r\n.sw-card__meta { font-size: 13px; color: var(--fg-faint); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; white-space: nowrap; }\r\n.sw-card__body { flex: 1 1 auto; padding: 10px 24px 18px; min-height: 0; overflow: hidden; }\r\n.sw-card__body.pad { padding: 20px 24px; }\r\n.sw-card__body.nopad { padding: 0; }\r\n\r\n/* accent colour helpers */\r\n.acc-green  .sw-card__accent, .sw-card__accent.acc-green  { background: var(--green);  box-shadow:0 0 10px color-mix(in srgb,var(--green) 60%, transparent); }\r\n.acc-yellow .sw-card__accent, .sw-card__accent.acc-yellow { background: var(--yellow); box-shadow:0 0 10px color-mix(in srgb,var(--yellow) 60%, transparent); }\r\n.acc-orange .sw-card__accent, .sw-card__accent.acc-orange { background: var(--orange); box-shadow:0 0 10px color-mix(in srgb,var(--orange) 60%, transparent); }\r\n.acc-red    .sw-card__accent, .sw-card__accent.acc-red    { background: var(--red);    box-shadow:0 0 10px color-mix(in srgb,var(--red) 60%, transparent); }\r\n.acc-blue   .sw-card__accent, .sw-card__accent.acc-blue   { background: var(--blue);   box-shadow:0 0 10px color-mix(in srgb,var(--blue) 60%, transparent); }\r\n.acc-cyan   .sw-card__accent, .sw-card__accent.acc-cyan   { background: var(--cyan);   box-shadow:0 0 10px color-mix(in srgb,var(--cyan) 60%, transparent); }\r\n.acc-violet .sw-card__accent, .sw-card__accent.acc-violet { background: var(--violet); box-shadow:0 0 10px color-mix(in srgb,var(--violet) 60%, transparent); }\r\n\r\n/* ---- table ---- */\r\n.sw-table { width: 100%; border-collapse: collapse; font-size: 17px; }\r\n.sw-table thead th {\r\n  text-align: left; font-weight: 600; color: var(--fg-faint);\r\n  font-size: 13px; letter-spacing: 0.11em; text-transform: uppercase;\r\n  padding: 11px 14px; border-bottom: 1px solid var(--border);\r\n  white-space: nowrap;\r\n}\r\n.sw-table tbody td {\r\n  padding: 16px 16px; border-bottom: 1px solid var(--hairline);\r\n  color: var(--fg-muted); vertical-align: middle;\r\n}\r\n.sw-table.roomy tbody td { padding: 21px 16px; }\r\n.sw-table.compact { font-size: 15px; }\r\n.sw-table.compact thead th { padding: 9px 11px; font-size: 12px; letter-spacing: 0.09em; }\r\n.sw-table.compact tbody td { padding: 11px 11px; }\r\n.sw-table tbody tr:last-child td { border-bottom: none; }\r\n.sw-table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.012); }\r\n.sw-table .num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); color: var(--fg); }\r\n.sw-table .strong { color: var(--fg); font-weight: 600; }\r\n.sw-table .muted { color: var(--fg-subtle); }\r\n.sw-table .mono { font-family: var(--mono); font-size: 15.5px; }\r\n/* auto-scroll feed (05 map): the column header is a SEPARATE element above the clipped scroll\r\n   area (not a table header), so scrolling rows are physically clipped below it and can never leak\r\n   into it. Header + rows share the same grid column template (set inline per wall). */\r\n.sw-feed-head {\r\n  display: grid; align-items: center; column-gap: 16px;\r\n  flex: 0 0 auto; padding: 11px 14px 10px; border-bottom: 1px solid var(--border);\r\n  font-size: 13px; font-weight: 600; letter-spacing: 0.11em; text-transform: uppercase;\r\n  color: var(--fg-faint); white-space: nowrap;\r\n}\r\n.sw-feed-row {\r\n  display: grid; align-items: center; column-gap: 16px;\r\n  padding: 15px 14px; border-bottom: 1px solid var(--hairline);\r\n  color: var(--fg-muted); font-size: 17px;\r\n}\r\n.sw-feed-row .strong { color: var(--fg); font-weight: 600; }\r\n.sw-feed-row .muted { color: var(--fg-subtle); }\r\n.sw-feed-row .mono { font-family: var(--mono); }\r\n.sw-rank { color: var(--fg-faint); font-family: var(--mono); font-weight:600; }\r\n\r\n/* ---- badge ---- */\r\n.sw-badge {\r\n  --c: var(--fg-subtle);\r\n  display: inline-flex; align-items: center; gap: 7px;\r\n  padding: 4px 11px; border-radius: 999px;\r\n  font-size: 14px; font-weight: 600; letter-spacing: 0.04em;\r\n  background: color-mix(in srgb, var(--c) 15%, transparent);\r\n  border: 1px solid color-mix(in srgb, var(--c) 36%, transparent);\r\n  color: color-mix(in srgb, var(--c) 62%, white);\r\n  white-space: nowrap; line-height: 1.3;\r\n}\r\n.sw-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c); }\r\n.sw-badge.solid { background: var(--c); color: #0a0a0a; border-color: transparent; font-weight: 700; }\r\n.sw-badge.is-critical { --c: var(--sev-critical); }\r\n.sw-badge.is-high     { --c: var(--sev-high); }\r\n.sw-badge.is-medium   { --c: var(--sev-medium); }\r\n.sw-badge.is-low      { --c: var(--sev-low); }\r\n.sw-badge.is-info     { --c: var(--sev-info); }\r\n.sw-badge.is-none, .sw-badge.is-t1 { --c: var(--t1); }\r\n.sw-badge.is-sbear, .sw-badge.is-t2 { --c: var(--t2); }\r\n.sw-badge.is-tear,  .sw-badge.is-t3 { --c: var(--t3); }\r\n.sw-badge.is-tevr,  .sw-badge.is-t4 { --c: var(--t4); }\r\n.sw-badge.is-open    { --c: var(--blue); }\r\n.sw-badge.is-ok      { --c: var(--green); }\r\n.sw-badge.is-down    { --c: var(--red); }\r\n.sw-badge.is-warn    { --c: var(--yellow); }\r\n.sw-badge.is-breach  { --c: var(--red); }\r\n\r\n/* ---- kpi ---- */\r\n.sw-kpi {\r\n  --c: var(--fg-muted);\r\n  position: relative;\r\n  background: linear-gradient(180deg, var(--surface), color-mix(in srgb,var(--surface) 86%, #000));\r\n  border: 1.5px solid var(--border);\r\n  border-radius: var(--radius);\r\n  padding: 19px 22px 18px;\r\n  display: flex; flex-direction: column; gap: 5px;\r\n  overflow: hidden;\r\n}\r\n.sw-kpi::before { content:\"\"; position:absolute; left:0; top:0; bottom:0; width:4px; background: var(--c); box-shadow: 0 0 16px color-mix(in srgb, var(--c) 55%, transparent); }\r\n.sw-kpi::after { content:\"\"; position:absolute; right:-30px; top:-30px; width:130px; height:130px; border-radius:50%; background: radial-gradient(circle, color-mix(in srgb,var(--c) 16%, transparent), transparent 70%); }\r\n.sw-kpi__label { font-size: 13.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg-subtle); }\r\n.sw-kpi__value { font-size: 58px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--fg); }\r\n.sw-kpi__value.tint { color: color-mix(in srgb, var(--c) 72%, white); }\r\n.sw-kpi__foot { font-size: 14px; color: var(--fg-faint); font-weight: 500; }\r\n.sw-kpi.c-red    { --c: var(--red); }\r\n.sw-kpi.c-orange { --c: var(--orange); }\r\n.sw-kpi.c-yellow { --c: var(--yellow); }\r\n.sw-kpi.c-green  { --c: var(--green); }\r\n.sw-kpi.c-blue   { --c: var(--blue); }\r\n.sw-kpi.c-violet { --c: var(--violet); }\r\n\r\n/* ---- trend / metric ---- */\r\n.sw-metric { display:flex; flex-direction:column; gap:12px; padding: 19px 22px; background: var(--surface-2); border:1.5px solid var(--border); border-radius: var(--radius-sm); }\r\n.sw-metric__label { font-size:14px; color: var(--fg-subtle); font-weight:600; letter-spacing:0.1em; text-transform:uppercase; }\r\n.sw-metric__row { display:flex; align-items:baseline; gap:10px; }\r\n.sw-metric__delta { font-size:42px; font-weight:700; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; display:flex; align-items:center; gap:8px; }\r\n.sw-metric__delta.up { color: var(--green); }\r\n.sw-metric__delta.down { color: var(--red); }\r\n.sw-metric__arrow { font-size:26px; }\r\n.sw-metric__sub { font-size:14px; color: var(--fg-faint); font-family: var(--mono); }\r\n\r\n/* ---- stat bars (level counters) ---- */\r\n.sw-bars { display:flex; flex-direction:column; gap:10px; }\r\n.sw-bar { --c: var(--fg-subtle); position:relative; display:flex; align-items:center; justify-content:space-between;\r\n  height: 56px; padding: 0 19px; border-radius: var(--radius-sm); overflow:hidden;\r\n  background: color-mix(in srgb, var(--c) 12%, var(--surface-2));\r\n  border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);\r\n}\r\n.sw-bar__fill { position:absolute; left:0; top:0; bottom:0; background: color-mix(in srgb, var(--c) 26%, transparent); border-right:2px solid var(--c); }\r\n.sw-bar__name { position:relative; font-size:16px; font-weight:600; letter-spacing:0.05em; color: color-mix(in srgb, var(--c) 55%, white); display:flex; align-items:center; gap:11px; }\r\n.sw-bar__dot { width:11px;height:11px;border-radius:50%; background:var(--c); box-shadow:0 0 10px var(--c); }\r\n.sw-bar__val { position:relative; font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; font-family:var(--mono); color: var(--fg); }\r\n.sw-bar.t1 { --c: var(--t1); } .sw-bar.t2 { --c: var(--t2); } .sw-bar.t3 { --c: var(--t3); } .sw-bar.t4 { --c: var(--t4); }\r\n.sw-bar.t5 { --c: #71717a; }\r\n\r\n/* ---- generic helpers ---- */\r\n.sw-eyebrow { font-size:13px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color: var(--fg-faint); }\r\n.sw-big { font-size:66px; font-weight:800; letter-spacing:-0.03em; line-height:1; }\r\n.sw-muted { color: var(--fg-muted); }\r\n.sw-subtle { color: var(--fg-subtle); }\r\n.flex { display:flex; } .col{flex-direction:column;} .center{align-items:center;justify-content:center;}\r\n.gap-s{gap:10px;} .gap-m{gap:16px;} .gap-l{gap:22px;}\r\n.grow{flex:1 1 auto;} .between{justify-content:space-between;}\r\n\r\n/* ---- horizontal bar list (mini bar chart) ---- */\r\n.sw-hbars { display:flex; flex-direction:column; gap:0; height:100%; justify-content:space-around; padding:4px 2px; }\r\n.sw-hbar { display:flex; flex-direction:column; gap:9px; }\r\n.sw-hbar__top { display:flex; justify-content:space-between; align-items:baseline; gap:12px; }\r\n.sw-hbar__name { font-size:16.5px; font-weight:600; color:var(--fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }\r\n.sw-hbar__val { font-size:16px; font-weight:700; font-family:var(--mono); color:var(--fg-muted); flex:0 0 auto; }\r\n.sw-hbar__track { height:14px; border-radius:7px; background:var(--surface-3); overflow:hidden; border:1px solid var(--border); }\r\n.sw-hbar__fill { height:100%; border-radius:6px; box-shadow:0 0 10px -2px currentColor; transition:width 1s ease; }\r\n\r\n/* ---- stacked posture bar ---- */\r\n.sw-stack { display:flex; height:32px; border-radius:8px; overflow:hidden; border:1px solid var(--border); }\r\n.sw-stack > div { height:100%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#0a0a0a; }\r\n.sw-legend { display:flex; gap:20px; margin-top:16px; flex-wrap:wrap; }\r\n.sw-legend > div { display:flex; align-items:center; gap:9px; font-size:14.5px; color:var(--fg-muted); }\r\n.sw-legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }\r\n\r\n@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.35;} }\r\n@keyframes countup { from { opacity:0; } to { opacity:1; } }\r\n@keyframes sweep { to { transform: rotate(360deg); } }\r\n@keyframes dash { to { stroke-dashoffset: 0; } }\r\n@keyframes arcflow { to { stroke-dashoffset: -1000; } }\r\n@keyframes blip { 0%{transform:scale(0.2);opacity:0.9;} 100%{transform:scale(2.4);opacity:0;} }\r\n\r\n/* ----------------------------------------------------- loading / skeleton -- */\r\n/* Slow, low-contrast shimmer — safe for an always-on 24/7 video wall. */\r\n@keyframes sw-shimmer { 100% { transform: translateX(100%); } }\r\n.sw-skel {\r\n  position: relative; overflow: hidden;\r\n  background: var(--surface-2);\r\n  border-radius: var(--radius-xs);\r\n}\r\n.sw-skel::after {\r\n  content: \"\"; position: absolute; inset: 0; transform: translateX(-100%);\r\n  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06) 50%, transparent);\r\n  animation: sw-shimmer 1.6s ease-in-out infinite;\r\n}\r\n.sw-skel-ring { position: absolute; border: 2px solid var(--border); border-radius: 50%; }\r\n/* card chrome stays crisp while the body shimmers; a hair dimmer signals \"not live yet\" */\r\n.sw-skel-card .sw-card__title { opacity: 0.78; }\r\n\r\n/* ring spinner — reuses the sweep keyframe (refresh indicator / inline fallback) */\r\n.sw-spin { animation: sweep 0.9s linear infinite; transform-origin: center; }\r\n\r\n/* topbar \"refreshing\" indicator — subtle, no layout shift, never a full skeleton */\r\n.sw-refreshing { display: inline-flex; align-items: center; gap: 8px; color: var(--fg-subtle); font-size: 12px; letter-spacing: 0.04em; }\r\n.sw-stale { color: color-mix(in srgb, var(--yellow) 70%, white) !important; }\r\n\r\n/* ---- wall 04 Action-Required Cases: enlarged table — keep badges/headers proportional ---- */\r\n.sw-cases-xl thead th { font-size: 15px; }\r\n.sw-cases-xl .sw-badge { font-size: 16px; padding: 5px 13px; }\r\n.sw-cases-xl .sw-badge .dot { width: 8px; height: 8px; }\r\n\r\n/* ---- reused live Leaflet map (wall 05) ---- */\r\n/* Hide the zoom +/- control: it's a display wall (no interaction) and the white buttons stand out.\r\n   Only wall 05 carries a Leaflet map, so this is naturally scoped. Attribution kept (it's tiny/grey). */\r\n.leaflet-control-zoom { display: none !important; }\r\n";
+window.SW_THEME_CSS = "/* ============================================================================\r\n   SKYWATCH — Unified Monitor-Wall Design System\r\n   shadcn / neutral-dark aesthetic, vivid operational status colors\r\n   Authored for 1920x1080 always-on SOC video walls (display-only).\r\n   ============================================================================ */\r\n@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');\r\n\r\n:root {\r\n  /* ---- neutral surfaces (shadcn \"neutral\" dark, slightly deepened) ---- */\r\n  --bg:            #08080a;\r\n  --bg-grad-a:     #0b0b0e;\r\n  --bg-grad-b:     #060608;\r\n  --surface:       #0f0f12;   /* card */\r\n  --surface-2:     #141418;   /* inner / elevated */\r\n  --surface-3:     #1a1a1f;   /* hover / chips */\r\n  --border:        rgba(255,255,255,0.15);\r\n  --border-2:      rgba(255,255,255,0.24);\r\n  --hairline:      rgba(255,255,255,0.08);\r\n\r\n  /* ---- foreground ---- */\r\n  --fg:            #fafafa;\r\n  --fg-muted:      #a1a1aa;   /* zinc-400 */\r\n  --fg-subtle:     #71717a;   /* zinc-500 */\r\n  --fg-faint:      #52525b;   /* zinc-600 */\r\n\r\n  /* ---- semantic status (vivid, meaningful) ---- */\r\n  --green:   #22c55e;\r\n  --yellow:  #eab308;\r\n  --orange:  #f97316;\r\n  --red:     #ef4444;\r\n  --blue:    #3b82f6;\r\n  --violet:  #8b5cf6;\r\n  --cyan:    #22d3ee;\r\n\r\n  /* threat tiers (GLESEC escalation codes) */\r\n  --t1: #22c55e;   /* NONE  / green  */\r\n  --t2: #eab308;   /* SBEAR / yellow */\r\n  --t3: #f97316;   /* TEAR  / orange */\r\n  --t4: #ef4444;   /* TEVR  / red    */\r\n  --t5: #d4d4d8;   /* INCIDENT / black tier -> light ink on black */\r\n\r\n  /* severity palette — CANONICAL SOURCE is SW.SEV in common.js (these mirror it and are also\r\n     set at runtime from there). Scheme: low=yellow, medium=orange, high=red, critical=pink/red. */\r\n  --sev-critical: #ff2d6e;\r\n  --sev-high:     #ef4444;\r\n  --sev-medium:   #f97316;\r\n  --sev-low:      #eab308;\r\n  --sev-info:     #38bdf8;\r\n\r\n  --radius:    14px;\r\n  --radius-sm: 9px;\r\n  --radius-xs: 7px;\r\n\r\n  --font: 'Inter', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;\r\n  --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;\r\n\r\n  --shadow: 0 1px 0 0 rgba(255,255,255,0.04) inset,\r\n            0 18px 40px -24px rgba(0,0,0,0.9);\r\n}\r\n\r\n* { box-sizing: border-box; }\r\nhtml, body { margin: 0; padding: 0; }\r\n\r\n.sw-root {\r\n  width: 1920px; height: 1080px;\r\n  background:\r\n    radial-gradient(1200px 700px at 78% -10%, rgba(59,130,246,0.05), transparent 60%),\r\n    radial-gradient(1000px 800px at 10% 110%, rgba(139,92,246,0.04), transparent 60%),\r\n    linear-gradient(160deg, var(--bg-grad-a), var(--bg-grad-b));\r\n  color: var(--fg);\r\n  font-family: var(--font);\r\n  font-size: 18px;\r\n  line-height: 1.42;\r\n  letter-spacing: 0.01em;\r\n  -webkit-font-smoothing: antialiased;\r\n  text-rendering: optimizeLegibility;\r\n  display: flex; flex-direction: column;\r\n  overflow: hidden;\r\n  position: relative;\r\n}\r\n.sw-root::before { /* faint grid texture */\r\n  content: \"\"; position: absolute; inset: 0; pointer-events: none;\r\n  background-image:\r\n    linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),\r\n    linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);\r\n  background-size: 48px 48px;\r\n  mask-image: radial-gradient(120% 120% at 50% 0%, #000 30%, transparent 90%);\r\n}\r\n\r\n/* ---------------------------------------------------------------- topbar -- */\r\n.sw-topbar {\r\n  flex: 0 0 auto;\r\n  height: 76px;\r\n  display: flex; align-items: center; gap: 20px;\r\n  padding: 0 34px;\r\n  border-bottom: 1px solid var(--border);\r\n  background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);\r\n  position: relative; z-index: 2;\r\n}\r\n.sw-brand { display: flex; align-items: center; gap: 12px; }\r\n.sw-brand__logo {\r\n  width: 38px; height: 38px; border-radius: 10px;\r\n  background: linear-gradient(180deg, #16191d, #0b0d10);\r\n  border: 1px solid rgba(255,255,255,0.08);\r\n  display: grid; place-items: center; flex: 0 0 auto;\r\n  box-shadow: 0 6px 14px -6px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.12);\r\n}\r\n.sw-brand__logo svg { width: 26px; height: 26px; filter: drop-shadow(0 0 2px rgba(147,232,223,0.85)); }\r\n.sw-brand__name { font-size: 18px; font-weight: 800; letter-spacing: 0.14em; }\r\n.sw-brand__name b { color: var(--fg); }\r\n.sw-brand__name span { color: var(--cyan); }\r\n.sw-brand__div { width: 1px; height: 30px; background: var(--border-2); margin: 0 4px; }\r\n.sw-title {\r\n  font-size: 18px; font-weight: 600; color: var(--fg);\r\n  letter-spacing: 0.02em;\r\n}\r\n.sw-title small { display:block; font-size: 13px; font-weight: 500; color: var(--fg-subtle); letter-spacing: 0.18em; text-transform: uppercase; }\r\n.sw-topbar__spacer { flex: 1 1 auto; }\r\n\r\n.sw-chip {\r\n  display: inline-flex; align-items: center; gap: 10px;\r\n  height: 46px; padding: 0 18px;\r\n  background: var(--surface-2);\r\n  border: 1px solid var(--border);\r\n  border-radius: 11px;\r\n  font-size: 15.5px; color: var(--fg-muted);\r\n  letter-spacing: 0.02em;\r\n}\r\n.sw-chip b { color: var(--fg); font-weight: 600; }\r\n.sw-chip__label { color: var(--fg-faint); text-transform: uppercase; font-size: 12px; letter-spacing: 0.14em; font-weight: 600; }\r\n.sw-clock { font-family: var(--mono); font-weight: 500; font-variant-numeric: tabular-nums; }\r\n\r\n.sw-status {\r\n  --c: var(--green);\r\n  display:inline-flex; align-items:center; gap:10px;\r\n  height:46px; padding:0 20px; border-radius:11px;\r\n  font-size:15px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase;\r\n  background: color-mix(in srgb, var(--c) 13%, transparent);\r\n  border:1px solid color-mix(in srgb, var(--c) 36%, transparent);\r\n  color: color-mix(in srgb, var(--c) 72%, white);\r\n}\r\n.sw-status .dot { width:9px;height:9px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c); animation: pulse 2.4s infinite; }\r\n/* tone follows derived severity so the pill colour never lies */\r\n.sw-status.tone-green  { --c: var(--green); }\r\n.sw-status.tone-yellow { --c: var(--yellow); }\r\n.sw-status.tone-orange { --c: var(--orange); }\r\n.sw-status.tone-red, .sw-status.is-degraded { --c: var(--red); }\r\n/* neutral status shown while loading — claims nothing about live health */\r\n.sw-status.is-loading { --c: var(--fg-subtle); background: var(--surface-3); border-color: var(--border-2); color: var(--fg-subtle); }\r\n.sw-status.is-loading .dot { box-shadow: none; animation: none; }\r\n\r\n/* ---------------------------------------------------------------- footer -- */\r\n/* Original-wall branding/copyright footer (the live walls carry one); kept subtle. */\r\n.sw-footer {\r\n  flex: 0 0 auto;\r\n  height: 34px;\r\n  display: flex; align-items: center; justify-content: center; gap: 20px;\r\n  border-top: 1px solid var(--border);\r\n  background: linear-gradient(0deg, rgba(255,255,255,0.02), transparent);\r\n  position: relative; z-index: 2;\r\n}\r\n.sw-footer__brand { font-size: 14px; font-weight: 800; letter-spacing: 0.16em; color: var(--cyan); }\r\n.sw-footer__brand b { color: var(--fg); font-weight: 700; }\r\n.sw-footer__copy { font-size: 12.5px; color: var(--fg-subtle); letter-spacing: 0.05em; }\r\n\r\n/* --------------------------------------------------------------- content -- */\r\n.sw-main {\r\n  flex: 1 1 auto;\r\n  padding: 24px 34px 26px;\r\n  display: grid;\r\n  gap: 22px;\r\n  position: relative; z-index: 1;\r\n  min-height: 0;\r\n}\r\n\r\n/* ---- card ---- */\r\n.sw-card {\r\n  background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--surface) 88%, #000));\r\n  border: 1.5px solid var(--border);\r\n  border-radius: var(--radius);\r\n  box-shadow: var(--shadow);\r\n  display: flex; flex-direction: column;\r\n  min-height: 0; overflow: hidden;\r\n}\r\n.sw-card__head {\r\n  flex: 0 0 auto;\r\n  display: flex; align-items: center; justify-content: space-between; gap: 18px;\r\n  padding: 17px 24px 15px;\r\n  border-bottom: 1px solid var(--hairline);\r\n}\r\n.sw-card__head-left { display: flex; align-items: center; gap: 13px; min-width: 0; }\r\n.sw-card__head-right { display: flex; align-items: baseline; gap: 16px; flex: 0 0 auto; text-align: right; }\r\n.sw-card__accent { width: 4px; height: 18px; border-radius: 3px; background: var(--fg-faint); flex: 0 0 auto; }\r\n.sw-card__title { font-size: 17.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }\r\n.sw-card__sub { font-size: 14px; font-weight: 500; color: var(--fg-subtle); letter-spacing: 0.04em; white-space: nowrap; }\r\n.sw-card__meta { font-size: 13px; color: var(--fg-faint); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; white-space: nowrap; }\r\n.sw-card__body { flex: 1 1 auto; padding: 10px 24px 18px; min-height: 0; overflow: hidden; }\r\n.sw-card__body.pad { padding: 20px 24px; }\r\n.sw-card__body.nopad { padding: 0; }\r\n\r\n/* accent colour helpers */\r\n.acc-green  .sw-card__accent, .sw-card__accent.acc-green  { background: var(--green);  box-shadow:0 0 10px color-mix(in srgb,var(--green) 60%, transparent); }\r\n.acc-yellow .sw-card__accent, .sw-card__accent.acc-yellow { background: var(--yellow); box-shadow:0 0 10px color-mix(in srgb,var(--yellow) 60%, transparent); }\r\n.acc-orange .sw-card__accent, .sw-card__accent.acc-orange { background: var(--orange); box-shadow:0 0 10px color-mix(in srgb,var(--orange) 60%, transparent); }\r\n.acc-red    .sw-card__accent, .sw-card__accent.acc-red    { background: var(--red);    box-shadow:0 0 10px color-mix(in srgb,var(--red) 60%, transparent); }\r\n.acc-blue   .sw-card__accent, .sw-card__accent.acc-blue   { background: var(--blue);   box-shadow:0 0 10px color-mix(in srgb,var(--blue) 60%, transparent); }\r\n.acc-cyan   .sw-card__accent, .sw-card__accent.acc-cyan   { background: var(--cyan);   box-shadow:0 0 10px color-mix(in srgb,var(--cyan) 60%, transparent); }\r\n.acc-violet .sw-card__accent, .sw-card__accent.acc-violet { background: var(--violet); box-shadow:0 0 10px color-mix(in srgb,var(--violet) 60%, transparent); }\r\n\r\n/* ---- table ---- */\r\n.sw-table { width: 100%; border-collapse: collapse; font-size: 17px; }\r\n.sw-table thead th {\r\n  text-align: left; font-weight: 600; color: var(--fg-faint);\r\n  font-size: 13px; letter-spacing: 0.11em; text-transform: uppercase;\r\n  padding: 11px 14px; border-bottom: 1px solid var(--border);\r\n  white-space: nowrap;\r\n}\r\n.sw-table tbody td {\r\n  padding: 16px 16px; border-bottom: 1px solid var(--hairline);\r\n  color: var(--fg-muted); vertical-align: middle;\r\n}\r\n.sw-table.roomy tbody td { padding: 21px 16px; }\r\n.sw-table.compact { font-size: 15px; }\r\n.sw-table.compact thead th { padding: 9px 11px; font-size: 12px; letter-spacing: 0.09em; }\r\n.sw-table.compact tbody td { padding: 11px 11px; }\r\n.sw-table tbody tr:last-child td { border-bottom: none; }\r\n.sw-table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.012); }\r\n.sw-table .num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); color: var(--fg); }\r\n.sw-table .strong { color: var(--fg); font-weight: 600; }\r\n.sw-table .muted { color: var(--fg-subtle); }\r\n.sw-table .mono { font-family: var(--mono); font-size: 15.5px; }\r\n/* auto-scroll feed (05 map): the column header is a SEPARATE element above the clipped scroll\r\n   area (not a table header), so scrolling rows are physically clipped below it and can never leak\r\n   into it. Header + rows share the same grid column template (set inline per wall). */\r\n.sw-feed-head {\r\n  display: grid; align-items: center; column-gap: 16px;\r\n  flex: 0 0 auto; padding: 11px 14px 10px; border-bottom: 1px solid var(--border);\r\n  font-size: 13px; font-weight: 600; letter-spacing: 0.11em; text-transform: uppercase;\r\n  color: var(--fg-faint); white-space: nowrap;\r\n}\r\n.sw-feed-row {\r\n  display: grid; align-items: center; column-gap: 16px;\r\n  padding: 15px 14px; border-bottom: 1px solid var(--hairline);\r\n  color: var(--fg-muted); font-size: 17px;\r\n}\r\n.sw-feed-row .strong { color: var(--fg); font-weight: 600; }\r\n.sw-feed-row .muted { color: var(--fg-subtle); }\r\n.sw-feed-row .mono { font-family: var(--mono); }\r\n.sw-rank { color: var(--fg-faint); font-family: var(--mono); font-weight:600; }\r\n\r\n/* ---- badge ---- */\r\n.sw-badge {\r\n  --c: var(--fg-subtle);\r\n  display: inline-flex; align-items: center; gap: 7px;\r\n  padding: 4px 11px; border-radius: 999px;\r\n  font-size: 14px; font-weight: 600; letter-spacing: 0.04em;\r\n  background: color-mix(in srgb, var(--c) 15%, transparent);\r\n  border: 1px solid color-mix(in srgb, var(--c) 36%, transparent);\r\n  color: color-mix(in srgb, var(--c) 62%, white);\r\n  white-space: nowrap; line-height: 1.3;\r\n}\r\n.sw-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c); }\r\n.sw-badge.solid { background: var(--c); color: #0a0a0a; border-color: transparent; font-weight: 700; }\r\n.sw-badge.is-critical { --c: var(--sev-critical); }\r\n.sw-badge.is-high     { --c: var(--sev-high); }\r\n.sw-badge.is-medium   { --c: var(--sev-medium); }\r\n.sw-badge.is-low      { --c: var(--sev-low); }\r\n.sw-badge.is-info     { --c: var(--sev-info); }\r\n.sw-badge.is-none, .sw-badge.is-t1 { --c: var(--t1); }\r\n.sw-badge.is-sbear, .sw-badge.is-t2 { --c: var(--t2); }\r\n.sw-badge.is-tear,  .sw-badge.is-t3 { --c: var(--t3); }\r\n.sw-badge.is-tevr,  .sw-badge.is-t4 { --c: var(--t4); }\r\n.sw-badge.is-open    { --c: var(--blue); }\r\n.sw-badge.is-ok      { --c: var(--green); }\r\n.sw-badge.is-down    { --c: var(--red); }\r\n.sw-badge.is-warn    { --c: var(--yellow); }\r\n.sw-badge.is-breach  { --c: var(--red); }\r\n\r\n/* ---- kpi ---- */\r\n.sw-kpi {\r\n  --c: var(--fg-muted);\r\n  position: relative;\r\n  background: linear-gradient(180deg, var(--surface), color-mix(in srgb,var(--surface) 86%, #000));\r\n  border: 1.5px solid var(--border);\r\n  border-radius: var(--radius);\r\n  padding: 19px 22px 18px;\r\n  display: flex; flex-direction: column; gap: 5px;\r\n  overflow: hidden;\r\n}\r\n.sw-kpi::before { content:\"\"; position:absolute; left:0; top:0; bottom:0; width:4px; background: var(--c); box-shadow: 0 0 16px color-mix(in srgb, var(--c) 55%, transparent); }\r\n.sw-kpi::after { content:\"\"; position:absolute; right:-30px; top:-30px; width:130px; height:130px; border-radius:50%; background: radial-gradient(circle, color-mix(in srgb,var(--c) 16%, transparent), transparent 70%); }\r\n.sw-kpi__label { font-size: 13.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg-subtle); }\r\n.sw-kpi__value { font-size: 58px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--fg); }\r\n.sw-kpi__value.tint { color: color-mix(in srgb, var(--c) 72%, white); }\r\n.sw-kpi__foot { font-size: 14px; color: var(--fg-faint); font-weight: 500; }\r\n.sw-kpi.c-red    { --c: var(--red); }\r\n.sw-kpi.c-orange { --c: var(--orange); }\r\n.sw-kpi.c-yellow { --c: var(--yellow); }\r\n.sw-kpi.c-green  { --c: var(--green); }\r\n.sw-kpi.c-blue   { --c: var(--blue); }\r\n.sw-kpi.c-violet { --c: var(--violet); }\r\n\r\n/* ---- trend / metric ---- */\r\n.sw-metric { display:flex; flex-direction:column; gap:12px; padding: 19px 22px; background: var(--surface-2); border:1.5px solid var(--border); border-radius: var(--radius-sm); }\r\n.sw-metric__label { font-size:14px; color: var(--fg-subtle); font-weight:600; letter-spacing:0.1em; text-transform:uppercase; }\r\n.sw-metric__row { display:flex; align-items:baseline; gap:10px; }\r\n.sw-metric__delta { font-size:42px; font-weight:700; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; display:flex; align-items:center; gap:8px; }\r\n.sw-metric__delta.up { color: var(--green); }\r\n.sw-metric__delta.down { color: var(--red); }\r\n.sw-metric__arrow { font-size:26px; }\r\n.sw-metric__sub { font-size:14px; color: var(--fg-faint); font-family: var(--mono); }\r\n\r\n/* ---- stat bars (level counters) ---- */\r\n.sw-bars { display:flex; flex-direction:column; gap:10px; }\r\n.sw-bar { --c: var(--fg-subtle); position:relative; display:flex; align-items:center; justify-content:space-between;\r\n  height: 56px; padding: 0 19px; border-radius: var(--radius-sm); overflow:hidden;\r\n  background: color-mix(in srgb, var(--c) 12%, var(--surface-2));\r\n  border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);\r\n}\r\n.sw-bar__fill { position:absolute; left:0; top:0; bottom:0; background: color-mix(in srgb, var(--c) 26%, transparent); border-right:2px solid var(--c); }\r\n.sw-bar__name { position:relative; font-size:16px; font-weight:600; letter-spacing:0.05em; color: color-mix(in srgb, var(--c) 55%, white); display:flex; align-items:center; gap:11px; }\r\n.sw-bar__dot { width:11px;height:11px;border-radius:50%; background:var(--c); box-shadow:0 0 10px var(--c); }\r\n.sw-bar__val { position:relative; font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; font-family:var(--mono); color: var(--fg); }\r\n.sw-bar.t1 { --c: var(--t1); } .sw-bar.t2 { --c: var(--t2); } .sw-bar.t3 { --c: var(--t3); } .sw-bar.t4 { --c: var(--t4); }\r\n.sw-bar.t5 { --c: #71717a; }\r\n\r\n/* ---- generic helpers ---- */\r\n.sw-eyebrow { font-size:13px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color: var(--fg-faint); }\r\n.sw-big { font-size:66px; font-weight:800; letter-spacing:-0.03em; line-height:1; }\r\n.sw-muted { color: var(--fg-muted); }\r\n.sw-subtle { color: var(--fg-subtle); }\r\n.flex { display:flex; } .col{flex-direction:column;} .center{align-items:center;justify-content:center;}\r\n.gap-s{gap:10px;} .gap-m{gap:16px;} .gap-l{gap:22px;}\r\n.grow{flex:1 1 auto;} .between{justify-content:space-between;}\r\n\r\n/* ---- horizontal bar list (mini bar chart) ---- */\r\n.sw-hbars { display:flex; flex-direction:column; gap:0; height:100%; justify-content:space-around; padding:4px 2px; }\r\n.sw-hbar { display:flex; flex-direction:column; gap:9px; }\r\n.sw-hbar__top { display:flex; justify-content:space-between; align-items:baseline; gap:12px; }\r\n.sw-hbar__name { font-size:16.5px; font-weight:600; color:var(--fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }\r\n.sw-hbar__val { font-size:16px; font-weight:700; font-family:var(--mono); color:var(--fg-muted); flex:0 0 auto; }\r\n.sw-hbar__track { height:14px; border-radius:7px; background:var(--surface-3); overflow:hidden; border:1px solid var(--border); }\r\n.sw-hbar__fill { height:100%; border-radius:6px; box-shadow:0 0 10px -2px currentColor; transition:width 1s ease; }\r\n\r\n/* ---- stacked posture bar ---- */\r\n.sw-stack { display:flex; height:32px; border-radius:8px; overflow:hidden; border:1px solid var(--border); }\r\n.sw-stack > div { height:100%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#0a0a0a; }\r\n.sw-legend { display:flex; gap:20px; margin-top:16px; flex-wrap:wrap; }\r\n.sw-legend > div { display:flex; align-items:center; gap:9px; font-size:14.5px; color:var(--fg-muted); }\r\n.sw-legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }\r\n\r\n@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.35;} }\r\n@keyframes countup { from { opacity:0; } to { opacity:1; } }\r\n@keyframes sweep { to { transform: rotate(360deg); } }\r\n@keyframes dash { to { stroke-dashoffset: 0; } }\r\n@keyframes arcflow { to { stroke-dashoffset: -1000; } }\r\n@keyframes blip { 0%{transform:scale(0.2);opacity:0.9;} 100%{transform:scale(2.4);opacity:0;} }\r\n\r\n/* ----------------------------------------------------- loading / skeleton -- */\r\n/* Slow, low-contrast shimmer — safe for an always-on 24/7 video wall. */\r\n@keyframes sw-shimmer { 100% { transform: translateX(100%); } }\r\n.sw-skel {\r\n  position: relative; overflow: hidden;\r\n  background: var(--surface-2);\r\n  border-radius: var(--radius-xs);\r\n}\r\n.sw-skel::after {\r\n  content: \"\"; position: absolute; inset: 0; transform: translateX(-100%);\r\n  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06) 50%, transparent);\r\n  animation: sw-shimmer 1.6s ease-in-out infinite;\r\n}\r\n.sw-skel-ring { position: absolute; border: 2px solid var(--border); border-radius: 50%; }\r\n/* card chrome stays crisp while the body shimmers; a hair dimmer signals \"not live yet\" */\r\n.sw-skel-card .sw-card__title { opacity: 0.78; }\r\n\r\n/* ring spinner — reuses the sweep keyframe (refresh indicator / inline fallback) */\r\n.sw-spin { animation: sweep 0.9s linear infinite; transform-origin: center; }\r\n\r\n/* topbar \"refreshing\" indicator — subtle, no layout shift, never a full skeleton */\r\n.sw-refreshing { display: inline-flex; align-items: center; gap: 8px; color: var(--fg-subtle); font-size: 12px; letter-spacing: 0.04em; }\r\n.sw-stale { color: color-mix(in srgb, var(--yellow) 70%, white) !important; }\r\n\r\n/* ---- wall 04 Action-Required Cases: enlarged table — keep badges/headers proportional ---- */\r\n.sw-cases-xl thead th { font-size: 15px; }\r\n.sw-cases-xl .sw-badge { font-size: 16px; padding: 5px 13px; }\r\n.sw-cases-xl .sw-badge .dot { width: 8px; height: 8px; }\r\n\r\n/* ---- reused live Leaflet map (wall 05) ---- */\r\n/* Hide the zoom +/- control: it's a display wall (no interaction) and the white buttons stand out.\r\n   Only wall 05 carries a Leaflet map, so this is naturally scoped. Attribution kept (it's tiny/grey). */\r\n.leaflet-control-zoom { display: none !important; }\r\n\n/* ============================================================================\n   SKYWATCH — terminal loading-skeleton styles (the \"fake boot console\" look).\n   Loaded by build-userscript.js (appended to SW_THEME_CSS) and by the offline\n   preview harness. Kept SEPARATE from theme.css so the animation layer is\n   self-contained. All classes are `sw-term*` / `sw-radar*` scoped.\n\n   The body of a large/table widget is replaced (while loading) by a mono\n   \"terminal\" that streams plausible connect/exec/stream output, then shows a\n   green confirmation when real data arrives. Small widgets fall back to the\n   plain shimmer skeleton in skeleton.js.\n   ============================================================================ */\n\n.sw-term{\n  position:relative; height:100%; width:100%; overflow:hidden;\n  padding:18px 22px; box-sizing:border-box;\n  font-family:var(--mono); font-size:15px; line-height:1.5;\n  display:flex; flex-direction:column; justify-content:flex-start;   /* fills top -> down */\n  --tc:#4be07f; color:var(--tc);\n  text-shadow:0 0 7px color-mix(in srgb, var(--tc) 40%, transparent);\n}\n.sw-term::after{ /* faint CRT scanlines; fixed while text scrolls beneath */\n  content:\"\"; position:absolute; inset:0; pointer-events:none;\n  background:repeating-linear-gradient(0deg, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.16) 2px 3px); opacity:.5;\n}\n/* colour themes */\n.sw-term.t-green {--tc:#4be07f;} .sw-term.t-cyan {--tc:#5fe9ff;} .sw-term.t-amber{--tc:#ffc14d;}\n.sw-term.t-blue  {--tc:#7fb0ff;} .sw-term.t-violet{--tc:#c193ff;} .sw-term.t-red  {--tc:#ff8a9c;}\n\n.sw-tl{ white-space:pre-wrap; word-break:break-word; flex:0 0 auto; }\n.sw-pr{ opacity:.9; font-weight:600; }\n.sw-dim{ opacity:.5; }\n.sw-hdr{ font-weight:700; letter-spacing:.03em; }\n.sw-ok{ color:#2be57f; text-shadow:0 0 9px rgba(43,229,127,.55); }\n.sw-bad{ color:#ff5c72; text-shadow:0 0 9px rgba(255,92,114,.5); }\n.sw-warn{ color:#ffc24b; text-shadow:0 0 9px rgba(255,194,75,.5); }\n.sw-hex{ opacity:.78; letter-spacing:.02em; }\n.sw-barwrap{ letter-spacing:-.5px; }\n.sw-pct.done{ color:#2be57f; }\n\n.sw-caret{ display:inline-block; width:.5em; height:1.05em; background:currentColor; margin-left:1px; vertical-align:-2px; animation:sw-termblink 1.05s steps(1) infinite; }\n@keyframes sw-termblink{ 50%{opacity:0;} }\n\n.sw-confirm{ margin-top:12px; font-weight:700; letter-spacing:.03em; }\n.sw-cmark{ color:#2be57f; text-shadow:0 0 12px rgba(43,229,127,.65); }\n.sw-ctext{ color:#46f094; text-shadow:0 0 14px rgba(70,240,148,.5); }\n.sw-csub{ color:#86cfa3; font-weight:500; opacity:.85; }\n\n/* ---- radar style (sweeping dish + forked scan log) ---- */\n.sw-radar-wrap{ position:absolute; inset:0; display:flex; align-items:center; gap:30px; padding:22px 30px; box-sizing:border-box; }\n.sw-radar-dish{ position:relative; flex:0 0 auto; border-radius:50%;\n  border:1px solid rgba(34,211,238,.35); background:radial-gradient(circle, rgba(34,211,238,.07), transparent 72%); overflow:hidden; }\n.sw-radar-ring{ position:absolute; border:1px solid rgba(34,211,238,.16); border-radius:50%; }\n.sw-radar-cx{ position:absolute; background:rgba(34,211,238,.16); }\n.sw-radar-cx.h{ left:0; right:0; top:50%; height:1px; } .sw-radar-cx.v{ top:0; bottom:0; left:50%; width:1px; }\n.sw-radar-sweep{ position:absolute; inset:0; border-radius:50%;\n  background:conic-gradient(from 0deg, rgba(34,211,238,0) 0deg, rgba(34,211,238,.05) 60deg, rgba(34,211,238,.5) 89deg, rgba(34,211,238,0) 90deg);\n  animation:sw-radarspin 2.6s linear infinite; }\n@keyframes sw-radarspin{ to{ transform:rotate(360deg); } }\n.sw-radar-blip{ position:absolute; width:9px; height:9px; border-radius:50%; background:#ff5c72; box-shadow:0 0 12px #ff5c72; transform:translate(-50%,-50%); animation:sw-radarblip 2.6s ease-out infinite; }\n@keyframes sw-radarblip{ 0%{ transform:translate(-50%,-50%) scale(.4); opacity:1; } 70%{ opacity:.5; } 100%{ transform:translate(-50%,-50%) scale(2.6); opacity:0; } }\n.sw-radar-log{ flex:1 1 auto; align-self:stretch; display:flex; flex-direction:column; justify-content:flex-start; padding:24px 0;\n  font-family:var(--mono); line-height:1.7; color:#5fe9ff; text-shadow:0 0 7px rgba(95,233,255,.4); overflow:hidden; }\n";
 
 /* ===== world-dots basemap                                              ===== */
 
@@ -407,6 +407,19 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
         ...Array.from({ length: n }, (_, i) => h('div', { class: 'flex', style: { gap: '18px', padding: '13px 12px', borderBottom: '1px solid var(--hairline)', alignItems: 'center' } },
           ...Array.from({ length: cols }, (_, j) => blk(j === 0 ? VW[i % VW.length] : 46, 13, 4)))));
     },
+    // animated "fake terminal" body for large/table widgets — looked up by `cd.term`
+    // key in the skeletons/ engine (loaded after this file). If the engine or the
+    // keyed script is missing, fall back to a very simple shimmer skeleton (cd.fallback).
+    terminal(cd) {
+      const key = cd.term;
+      const def = (SW.getSkel && key) ? SW.getSkel(key) : null;
+      if (def && SW.skelTerminal) {
+        const host = h('div', { style: { height: '100%', width: '100%' } });
+        try { SW.skelTerminal(host, def, cd); return host; }
+        catch (e) { /* fall through to the simple skeleton */ }
+      }
+      return (SKEL[cd.fallback] || SKEL.lines)(cd);
+    },
   };
 
   /* ---- a single skeleton card (real chrome, shimmer body) ---------------- */
@@ -473,6 +486,662 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
   SW.skelCard = skelCard;
   SW.spinner = spinner;
 })(window);
+
+
+/* ===== skeletons/00-engine.js                                          ===== */
+
+/* ============================================================================
+   SKYWATCH — terminal skeleton ENGINE (loaded before the per-widget configs).
+
+   A widget's loading body can be a "fake boot console" that streams plausible
+   connect/exec/stream output, then a green "Connected" line when real data
+   lands. Per-widget files (skeletons/NN-*.js) are PURE DATA — they assign a
+   small config to window.__SW_SKELS[key]:
+
+     window.__SW_SKELS['06-critical-down'] = {
+       base:'shell',           // one of the 8 base visual styles below
+       theme:'red',            // terminal colour (green|cyan|amber|blue|violet|red)
+       fontPx:16,              // tuned to the widget's on-screen size
+       v:{ ...tailored text... }   // tokens may use {n}, {n:LO-HI}, {pick:a|b|c}
+     };
+
+   skeleton.js's `terminal` archetype calls SW.skelTerminal(host, def, cd); if the
+   key/engine is missing it falls back to a very simple shimmer skeleton.
+
+   Lifecycle: the console self-extends (loops work forever) for any 3–60s wait;
+   it self-stops the instant its node is detached (boot swaps in the real wall).
+   boot.js flips ctx.ready on first real data -> the green confirmation shows for
+   ~1s, then the live render replaces it.
+   ============================================================================ */
+(function (root) {
+  var SW = root.SW;
+  if (!SW) { try { console.warn('skeletons/00-engine: SW (common.js) not loaded'); } catch (e) {} return; }
+
+  root.__SW_SKELS = root.__SW_SKELS || {};
+  SW.getSkel = function (key) { return (key && root.__SW_SKELS[key]) || null; };
+
+  /* ---------------------------------------------------------------- helpers -- */
+  function el(tag, cls, txt){ var e=document.createElement(tag); if(cls)e.className=cls; if(txt!=null)e.textContent=txt; return e; }
+  function rint(a,b){ return a + Math.floor(Math.random()*(b-a+1)); }
+  function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+  function pad(s,n){ s=String(s); while(s.length<n) s+=' '; return s; }
+  // token templater so configs stay pure data:  {n} {n:LO-HI} {pick:a|b|c}
+  function tmpl(s){
+    if(s==null) return '';
+    s=String(s);
+    s=s.replace(/\{n:(\d+)-(\d+)\}/g, function(_,a,b){ return rint(parseInt(a,10), parseInt(b,10)); });
+    s=s.replace(/\{n\}/g, function(){ return rint(1,99); });
+    s=s.replace(/\{pick:([^}]*)\}/g, function(_,o){ return pick(o.split('|')); });
+    return s;
+  }
+  function sleep(ctx, ms){ return new Promise(function(res){ ctx.after(ms, res); }); }
+  function scrollEnd(ctx){ try{ ctx.screen.scrollTop = ctx.screen.scrollHeight; }catch(e){} }
+
+  /* ---------------------------------------------------- run-context -------- */
+  // Attach-guarded: stays alive before it's mounted, dies once detached (boot
+  // replaces the skeleton with the live wall). All timers tracked + cancellable.
+  function makeCtx(screen){
+    var cancels = new Set();
+    var attached = false, stopped = false;
+    var ctx = {
+      screen: screen,
+      caret: el('span','sw-caret'),
+      ready: false,
+      get alive(){ if(stopped) return false; if(document.contains(screen)){ attached=true; return true; } return !attached; },
+      after: function(ms, fn){ var c=function(){ clearTimeout(id); }; var id=setTimeout(function(){ cancels.delete(c); fn&&fn(); }, ms); cancels.add(c); return c; },
+      every: function(ms, fn){ var c=function(){ clearInterval(id); }; var id=setInterval(fn, ms); cancels.add(c); return c; },
+      loop: function(fn){ var live=true, raf; var step=function(t){ if(!live) return; fn(t); raf=requestAnimationFrame(step); }; raf=requestAnimationFrame(step); var c=function(){ live=false; cancelAnimationFrame(raf); }; cancels.add(c); return c; },
+      clearScreen: function(){ screen.innerHTML=''; screen.appendChild(ctx.caret); screen.scrollTop=0; },
+      fork: function(elx){ var f=Object.create(ctx); f.screen=elx; f.caret=el('span','sw-caret'); f.clearScreen=function(){ elx.innerHTML=''; elx.appendChild(f.caret); }; elx.appendChild(f.caret); return f; },
+      stop: function(){ stopped=true; cancels.forEach(function(c){ try{c();}catch(e){} }); cancels.clear(); }
+    };
+    screen.appendChild(ctx.caret);
+    return ctx;
+  }
+
+  /* ---------------------------------------------------- primitives --------- */
+  function newLine(ctx, cls, prompt){
+    var line = el('div','sw-tl '+(cls||''));
+    if(prompt){ var p=el('span','sw-pr'); p.textContent=prompt; line.appendChild(p); }
+    var span = el('span'); line.appendChild(span);
+    line.appendChild(ctx.caret);
+    ctx.screen.appendChild(line);
+    while(ctx.screen.childElementCount > 160) ctx.screen.removeChild(ctx.screen.firstElementChild);
+    scrollEnd(ctx);
+    return { line:line, span:span };
+  }
+  async function type(ctx, span, text, speed){
+    speed = speed||16;
+    for(var i=0;i<text.length;i++){
+      if(!ctx.alive) return;
+      span.appendChild(document.createTextNode(text[i]));
+      await sleep(ctx, speed + Math.random()*speed*0.7 + (text[i]===' '?4:0));
+    }
+  }
+  async function line(ctx, o){
+    var r = newLine(ctx, o.cls, o.prompt);
+    await type(ctx, r.span, tmpl(o.text||''), o.speed);
+    if(o.tag){ await sleep(ctx, o.tagDelay||200); if(!ctx.alive) return; var t=el('span', o.tagCls||'sw-ok'); t.textContent=o.tag; r.span.appendChild(t); }
+    scrollEnd(ctx);
+    if(o.after) await sleep(ctx, o.after);
+    return r.span;
+  }
+  async function okStep(ctx, label, okTag){
+    label = tmpl(label);
+    var dotN = Math.max(3, 40 - label.length);
+    await line(ctx, { text: label+' '+new Array(dotN+1).join('.'), tag: okTag||' [ OK ]', tagCls:'sw-ok', speed:8, tagDelay:120+Math.random()*200 });
+  }
+  async function bar(ctx, label, o){
+    o = o||{}; var width=o.width||16;
+    var r = newLine(ctx, '');
+    var lab=el('span'); lab.textContent=tmpl(label); r.span.appendChild(lab);
+    var br=el('span','sw-barwrap'); r.span.appendChild(br);
+    var pc=el('span','sw-pct'); r.span.appendChild(pc);
+    var cur=0;
+    await new Promise(function(res){
+      var c=ctx.every(o.tick||80, function(){
+        cur = ctx.ready ? 100 : Math.min(100, cur + (o.step|| (3+Math.random()*9)));   // snap to full once data is ready
+        var f=Math.round(width*cur/100);
+        br.textContent='['+new Array(f+1).join('█')+new Array(width-f+1).join('░')+']';
+        pc.textContent=' '+('  '+Math.round(cur)).slice(-3)+'%';
+        if(cur>=100){ pc.className='sw-pct done'; c(); res(); }
+      });
+    });
+  }
+  async function multiBar(ctx, items){
+    var width=12;
+    var rows = items.map(function(it){
+      var r = newLine(ctx, '');
+      var lab=el('span'); lab.textContent=pad(tmpl(it.label),20); r.span.appendChild(lab);
+      var br=el('span','sw-barwrap'); r.span.appendChild(br);
+      var pc=el('span','sw-pct'); r.span.appendChild(pc);
+      return { br:br, pc:pc, cur:0, speed: it.speed || (1.1+Math.random()*1.6) };
+    });
+    await new Promise(function(res){
+      var c=ctx.every(50, function(){
+        var done=true;
+        rows.forEach(function(r){
+          if(ctx.ready) r.cur=100;                                                     // snap all bars to full once data is ready
+          else if(r.cur<100){ r.cur=Math.min(100, r.cur + r.speed*(1.2+Math.random()*2.4)); }
+          if(r.cur<100) done=false;
+          var f=Math.round(width*r.cur/100);
+          r.br.textContent='['+new Array(f+1).join('█')+new Array(width-f+1).join('░')+']';
+          r.pc.textContent=' '+('  '+Math.round(r.cur)).slice(-3)+'%';
+          if(r.cur>=100) r.pc.className='sw-pct done';
+        });
+        scrollEnd(ctx);
+        if(done){ c(); res(); }
+      });
+    });
+  }
+  async function confirm(ctx, text, subtext){
+    await sleep(ctx, 180); if(!ctx.alive) return;
+    var box = el('div','sw-tl sw-confirm');
+    box.appendChild(el('span','sw-cmark','✓ '));
+    box.appendChild(el('span','sw-ctext', tmpl(text)));
+    if(subtext) box.appendChild(el('span','sw-csub','   · '+tmpl(subtext)));
+    box.appendChild(ctx.caret);
+    ctx.screen.appendChild(box);
+    scrollEnd(ctx);
+  }
+  async function bstep(ctx, lbl){ var r=newLine(ctx,''); var t=el('span','sw-ok'); t.textContent='[  OK  ] '; r.span.appendChild(t); await type(ctx,r.span,tmpl(lbl),6); scrollEnd(ctx); await sleep(ctx,90+Math.random()*120); }
+  async function bspin(ctx, lbl, dur){
+    var r=newLine(ctx,''); var o=el('span','sw-warn'); o.textContent='[ '; r.span.appendChild(o);
+    var s=el('span','sw-warn'); r.span.appendChild(s); var cl=el('span','sw-warn'); cl.textContent=' ] '; r.span.appendChild(cl);
+    r.span.appendChild(document.createTextNode(tmpl(lbl))); scrollEnd(ctx);
+    var fr=['⠋','⠙','⠹','⠸','⠼','⠴','⠦','⠧','⠇','⠏'], i=0;
+    await new Promise(function(res){ var c=ctx.every(80,function(){ s.textContent=fr[i++%fr.length]; }); ctx.after(dur||850,function(){ c(); res(); }); }); if(!ctx.alive) return;
+    o.textContent='['; o.className='sw-ok'; s.textContent='  OK  '; s.className='sw-ok'; cl.textContent='] '; cl.className='sw-ok'; await sleep(ctx,120);
+  }
+  async function reqPair(ctx, m, u, sz, ms){
+    await line(ctx,{ prompt:'→ ', cls:'sw-dim', text:m+'  '+u, speed:6, after:80+Math.random()*150 });
+    var r=newLine(ctx,''); var a=el('span','sw-ok'); a.textContent='← 200 OK'; r.span.appendChild(a);
+    await type(ctx, r.span, '   '+tmpl(sz)+'   '+tmpl(ms), 5); scrollEnd(ctx); await sleep(ctx, 90);
+  }
+
+  /* radar dish + forked scan log; returns the fork the style writes into */
+  function radarInit(ctx, size){
+    size = size || 280;
+    var wrap=el('div','sw-radar-wrap');
+    var dish=el('div','sw-radar-dish'); dish.style.width=size+'px'; dish.style.height=size+'px';
+    for(var i=1;i<=3;i++){ var rg=el('div','sw-radar-ring'); rg.style.inset=(i*14)+'%'; dish.appendChild(rg); }
+    dish.appendChild(el('div','sw-radar-cx h')); dish.appendChild(el('div','sw-radar-cx v'));
+    dish.appendChild(el('div','sw-radar-sweep'));
+    var b1=el('div','sw-radar-blip'); b1.style.left='66%'; b1.style.top='38%'; dish.appendChild(b1);
+    var b2=el('div','sw-radar-blip'); b2.style.left='40%'; b2.style.top='70%'; b2.style.animationDelay='1.1s'; dish.appendChild(b2);
+    wrap.appendChild(dish);
+    var logwrap=el('div','sw-radar-log'); wrap.appendChild(logwrap);
+    ctx.caret.style.display='none';
+    ctx.screen.appendChild(wrap);
+    var f=ctx.fork(logwrap); f._sec=0; f._pass=1;
+    return f;
+  }
+
+  /* ------------------------------------------------ base style factories --- */
+  // Each returns { intro?, tick, done, init? } using the tailored `v` config.
+  var TERM_STYLES = {
+    // SSH login -> module fetch with [ OK ] step tags
+    shell: function(v){ v=v||{};
+      var host=v.host||'goc-relay@skywatch.glesec.internal', cmd=v.cmd||'./fetch --scope=all';
+      var steps=v.steps||['authenticating session token','opening secure channel (TLS 1.3)','correlating results'];
+      var conf=v.confirm||['CONNECTED','data stream established'];
+      return {
+        intro: async function(c){
+          await line(c,{ prompt:'$ ', text:'ssh '+host, speed:13, after:120 });
+          await line(c,{ cls:'sw-dim', text:v.keyline||"Permanently added host key (ED25519) to known hosts.", speed:5, after:80 });
+          await line(c,{ text:'Connection established.', tag:' ✓', tagCls:'sw-ok', after:160 });
+          await line(c,{ prompt:'$ ', text:cmd, speed:12, after:150 });
+        },
+        tick: async function(c){ await okStep(c, pick(steps)); },
+        done: async function(c){ if(v.tail) await line(c,{ cls:'sw-dim', text:v.tail, after:180 }); await confirm(c,conf[0],conf[1]); }
+      };
+    },
+    // systemd-style boot checklist; spinners flip to [  OK  ]
+    boot: function(v){ v=v||{};
+      var head=v.head||'SKYWATCH GOC · service node', post=v.post||'POST  mem 64G ok · cores 32 ok · uplink 10GbE ok';
+      var units=v.units||['mount /var/data','start core.service','verify peers ({n:6-8}/8)'];
+      var spins=v.spins||['self-test','warm cache'];
+      var conf=v.confirm||['READY','node online'];
+      return {
+        intro: async function(c){ await line(c,{ cls:'sw-hdr', text:head, speed:7, after:130 }); await line(c,{ cls:'sw-dim', text:post, speed:4, after:150 }); },
+        tick: async function(c){ if(Math.random()<0.26) await bspin(c, pick(spins), 650+Math.random()*600); else await bstep(c, pick(units)); },
+        done: async function(c){ await confirm(c,conf[0],conf[1]); }
+      };
+    },
+    // telemetry uplink: handshake tree then endless rx-event stream + sync bars
+    tele: function(v){ v=v||{};
+      var headline=v.headline||'SKYWATCH TELEMETRY · establishing uplink', channel=v.channel||'stream.inbound';
+      var rx=v.rx||'rx {n:40-480} events · buf {n:12-98}%';
+      var conf=v.confirm||['STREAM LIVE','feed established'];
+      return {
+        intro: async function(c){
+          await line(c,{ prompt:'◢ ', text:headline, speed:12, after:150 });
+          await line(c,{ text:'  ├─ handshake', tag:'  done', tagCls:'sw-ok', after:80 });
+          await line(c,{ text:'  ├─ negotiating cipher', tag:'  AES-256-GCM', tagCls:'sw-ok', after:80 });
+          await line(c,{ text:'  ├─ subscribe: '+channel, speed:8, after:80 });
+          await line(c,{ text:'  └─ buffering stream', cls:'sw-dim', after:130 });
+        },
+        tick: async function(c){ if(Math.random()<0.26) await bar(c,'  batch sync ',{ width:16 }); else await line(c,{ cls:'sw-dim', text:'  '+rx, speed:3, after:130+Math.random()*220 }); },
+        done: async function(c){ await confirm(c,conf[0],conf[1]); }
+      };
+    },
+    // traceroute hops then an endless ICMP ping stream
+    trace: function(v){ v=v||{};
+      var target=v.target||'goc-edge.glesec.net';
+      var hops=v.hops||[['1','10.0.0.1','0.42 ms'],['2','edge-gw.glesec.net','1.19 ms'],['3','10.42.7.1','3.88 ms'],['4','core-fw.glesec.net','7.51 ms'],['5',target,'11.04 ms']];
+      var node=v.node||'core', ttl=v.ttl||57, base=v.base!=null?v.base:11.0;
+      var conf=v.confirm||['LINK HEALTHY','endpoints reachable'];
+      return {
+        intro: async function(c){
+          await line(c,{ prompt:'$ ', text:'traceroute '+target, speed:12, after:140 });
+          for(var i=0;i<hops.length;i++){ await line(c,{ text:' '+pad(hops[i][0],2)+'  '+pad(hops[i][1],22)+hops[i][2], speed:4, after:70 }); }
+          await line(c,{ prompt:'$ ', text:'ping --proto=icmp '+node, speed:11, after:130 });
+          c._seq=0;
+        },
+        tick: async function(c){ c._seq=(c._seq||0)+1; await line(c,{ text:'64 bytes from '+node+': icmp_seq='+c._seq+' ttl='+ttl+' time='+(base+Math.random()*4).toFixed(1)+' ms', speed:3, after:250+Math.random()*230 }); },
+        done: async function(c){ await line(c,{ cls:'sw-dim', text:'--- '+(c._seq||0)+' packets · 0.0% loss · avg '+(base+1.7).toFixed(1)+' ms', after:130 }); await confirm(c,conf[0],conf[1]); }
+      };
+    },
+    // parallel pipeline: one "shard" per tick, 4 progress bars each
+    pipe: function(v){ v=v||{};
+      var headline=v.headline||'initializing pipeline', attach=v.attach||'attaching to queue · partitions 0–7';
+      var unit=v.unit||'records', shardName=v.shard||'shard';
+      var bars=v.bars||['splunk indexers','correlation','sla calculation','priority scoring'];
+      var conf=v.confirm||['CONNECTED','data synchronized'];
+      return {
+        intro: async function(c){ await line(c,{ prompt:'▶ ', text:headline, speed:11, after:140 }); await line(c,{ cls:'sw-dim', text:attach, speed:4, after:140 }); c._sh=0; },
+        tick: async function(c){ c._sh=(c._sh||0)+1; await line(c,{ cls:'sw-dim', text:'processing '+shardName+' '+c._sh+' · {n:8-40} '+unit, after:100 }); await multiBar(c, bars.map(function(b){ return { label:b }; })); },
+        done: async function(c){ if(v.tail) await line(c,{ cls:'sw-dim', text:v.tail, after:150 }); await confirm(c,conf[0],conf[1]); }
+      };
+    },
+    // dev-console request log: POST/GET -> 200 OK with sizes + ms (endless)
+    api: function(v){ v=v||{};
+      var open=v.open||'opening api session · goc-gateway';
+      var reqs=v.reqs||[['GET ','/api/data','128 KB','58 ms'],['POST','/api/query','512 KB','120 ms']];
+      var conf=v.confirm||['200 OK','payload verified · rendering'];
+      return {
+        intro: async function(c){ await line(c,{ prompt:'⇄ ', cls:'sw-dim', text:open, speed:8, after:130 }); },
+        tick: async function(c){ var e=pick(reqs); await reqPair(c,e[0],e[1],e[2],e[3]); },
+        done: async function(c){ await line(c,{ cls:'sw-dim', text:v.parse||'parsing {n:800-1400} records', after:120 }); await bar(c,' decode ',{ width:16 }); await confirm(c,conf[0],conf[1]); }
+      };
+    },
+    // hex dump + decrypt (endless, incrementing address)
+    hex: function(v){ v=v||{};
+      var file=v.file||'payload.bin';
+      var steps=v.steps||['decrypt block {n:1-64}','verify HMAC chunk {n:1-64}','inflate gzip stream','key rotation ECDHE-P384'];
+      var conf=v.confirm||['INTEGRITY VERIFIED','payload parsed'];
+      return {
+        intro: async function(c){ await line(c,{ prompt:'$ ', text:'recv payload · '+file, speed:11, after:140 }); c._addr=0; },
+        tick: async function(c){
+          if(Math.random()<0.22){ await okStep(c, pick(steps)); return; }
+          c._addr=(c._addr||0)+8;
+          var a='0x'+('0000'+c._addr.toString(16)).slice(-4);
+          var hx=[], asc=[];
+          for(var k=0;k<8;k++){ hx.push(('0'+rint(32,126).toString(16)).slice(-2)); asc.push(String.fromCharCode(rint(48,90))); }
+          await line(c,{ cls:'sw-hex', text:a+'  '+hx.join(' ')+'  |'+asc.join('')+'|', speed:2, after:50 });
+        },
+        done: async function(c){ await confirm(c,conf[0],conf[1]); }
+      };
+    },
+    // sweeping radar dish + re-scanning sector log
+    radar: function(v){ v=v||{};
+      var sectors=v.sectors||[['identity','clear'],['endpoint','{n:1-3} signals'],['network','clear'],['cloud','1 signal'],['application','clear'],['data','nominal'],['physical','nominal']];
+      var conf=v.confirm||['SCAN COMPLETE','surface locked'], dish=v.dishSize||280;
+      return {
+        init: function(ctx){ return radarInit(ctx, dish); },
+        intro: async function(f){ await line(f,{ prompt:'◎ ', text:'RADAR · pass '+(f._pass||1)+' · scanning '+sectors.length+' sectors', speed:12, after:150 }); },
+        tick: async function(f){
+          var idx=(f._sec||0)%sectors.length, row=sectors[idx], res=tmpl(row[1]);
+          var warn=(res!=='clear'&&res!=='nominal'&&res!=='ok');
+          await line(f,{ text:'  sector '+pad(row[0],12)+' ', tag:res, tagCls: warn?'sw-warn':'sw-ok', speed:6, after:160 });
+          f._sec=idx+1;
+          if(f._sec%sectors.length===0){ f._pass=(f._pass||1)+1; await line(f,{ cls:'sw-dim', text:'  — pass complete · re-scanning —', after:150 }); await line(f,{ prompt:'◎ ', text:'RADAR · pass '+f._pass+' · scanning '+sectors.length+' sectors', speed:11, after:130 }); }
+        },
+        done: async function(f){ await confirm(f,conf[0],conf[1]); }
+      };
+    }
+  };
+  var DEFAULT_THEME = { shell:'green', boot:'green', tele:'cyan', trace:'cyan', pipe:'red', api:'blue', hex:'amber', radar:'cyan' };
+  SW.TERM_STYLES = TERM_STYLES;
+
+  /* ------------------------------------------------------- runner ---------- */
+  // intro -> stream work until ctx.ready (real data) -> green done -> hold.
+  // The green confirmation ONLY shows on real data-ready, never on the safety cap.
+  function runDef(ctx, style){
+    (async function(){
+      while(ctx.alive){
+        ctx.clearScreen();
+        var t = style.init ? style.init(ctx) : ctx;
+        ctx.ready = false;
+        if(style.intro){ await style.intro(t); if(!ctx.alive) return; }
+        var guardEnd = Date.now() + 90000;                 // safety: never spin past ~90s
+        while(ctx.alive && !ctx.ready && Date.now() < guardEnd){ await style.tick(t); if(!ctx.alive) return; }
+        if(!ctx.alive) return;
+        if(ctx.ready){                                     // real data -> confirm, then wait to be swapped out
+          await style.done(t); if(!ctx.alive) return;
+          while(ctx.alive){ await sleep(ctx, 500); }
+          return;
+        }
+        await sleep(ctx, 600);                              // safety expiry -> reset + loop (no false confirm)
+      }
+    })();
+  }
+
+  /* ----------------------------------------------- public mount ------------ */
+  SW.skelTerminal = function(host, def, cd){
+    def = def || {};
+    var base = def.base || 'shell';
+    var factory = TERM_STYLES[base] || TERM_STYLES.shell;
+    var v = def.v || {};
+    if(def.confirm && !v.confirm) v.confirm = def.confirm;
+    var theme = def.theme || DEFAULT_THEME[base] || 'green';
+    var term = el('div', 'sw-term t-' + theme);
+    if(def.fontPx) term.style.fontSize = def.fontPx + 'px';
+    if(def.lineHeight) term.style.lineHeight = def.lineHeight;
+    host.appendChild(term);
+    var ctx = makeCtx(term);
+    var style;
+    try { style = factory(v); } catch(e){ style = TERM_STYLES.shell(v); }
+    var ctrl = { el: term, finish: function(){ ctx.ready = true; }, stop: function(){ ctx.stop(); } };
+    term.__swTerm = ctrl;
+    runDef(ctx, style);
+    return ctrl;
+  };
+})(window);
+
+
+/* ===== skeletons/01-csa.js                                             ===== */
+
+/* ============================================================================
+   Wall 01 — CSA (Cybersecurity Situational Awareness) · terminal loading skeletons.
+   Two large widgets get a tailored "fake boot console"; the small cards (Top Risk
+   Domain hero, Posture Trend inline, Contributing Conditions feed, Threat Level
+   tile) fall back to plain shimmer — that's intentional.
+   Pure-data configs consumed by skeletons/00-engine.js (tokens: {n} {n:LO-HI} {pick:a|b|c}).
+   ============================================================================ */
+(function (S) {
+
+  // Domain Risk Index (bars · amber) — pipeline that computes the 0–100 risk
+  // score across the 7 security domains/sectors (one parallel "shard" per pass).
+  S['01-domain-risk'] = {
+    base: 'pipe', theme: 'amber', fontPx: 15,
+    v: {
+      headline: 'computing domain risk index',
+      attach: 'loading 7-sector posture model · {n:120-400} indicators',
+      unit: 'indicators', shard: 'sector',
+      bars: ['identity & access', 'endpoint', 'network', 'cloud & saas', 'application', 'data', 'physical'],
+      tail: 'normalizing 0–100 risk scores · ranking sectors …',
+      confirm: ['CONNECTED', 'risk index computed · 7 sectors']
+    }
+  };
+
+  // Security Domain Radar (radar · cyan) — CSS-only sweeping dish + a re-scanning
+  // sector log; maps the 7-sector risk surface. dishSize 300 fits this tall card.
+  S['01-radar'] = {
+    base: 'radar', theme: 'cyan', fontPx: 15,
+    v: {
+      sectors: [
+        ['identity & access', 'clear'],
+        ['endpoint', '{n:1-3} signals'],
+        ['network', 'clear'],
+        ['cloud & saas', '1 signal'],
+        ['application', 'clear'],
+        ['data', 'nominal'],
+        ['physical', 'nominal']
+      ],
+      dishSize: 300,
+      confirm: ['SURFACE MAPPED', '7 sectors · risk model loaded']
+    }
+  };
+
+})(window.__SW_SKELS = window.__SW_SKELS || {});
+
+
+/* ===== skeletons/02-notable.js                                         ===== */
+
+/* ============================================================================
+   Wall 02 — Notable Events Intelligence · GNE Detection Engine · terminal skeletons.
+   Each key is a tailored "fake boot console" for one widget while its real data
+   (Splunk notable-event searches) loads; the 'Trending Analysis' tile keeps the
+   plain metrics shimmer. Pure-data configs consumed by skeletons/00-engine.js
+   (tokens: {n} {n:LO-HI} {pick:a|b|c}).
+   ============================================================================ */
+(function (S) {
+
+  // Top 10 GNE Types (tall left table · cyan) — Splunk search-head request log
+  // ranking notable-event ("GNE") types by 24h volume.
+  S['02-top-gne'] = {
+    base: 'api', theme: 'cyan', fontPx: 14,
+    v: {
+      open: 'connecting splunk search head · index=gne_notable',
+      reqs: [
+        ['POST', '/services/search/jobs  | tstats count by gne_type', '1.2 MB', '{n:120-220} ms'],
+        ['GET ', '/search/jobs/{n:1000-9999}/results?window=24h', '412 KB', '{n:40-90} ms'],
+        ['POST', '/services/search/jobs  | sort -count | head 10', '864 KB', '{n:90-180} ms'],
+        ['GET ', '/search/jobs/{n:1000-9999}/results?fields=name,priority', '206 KB', '{n:40-80} ms'],
+        ['POST', '/services/search/jobs  | join case_config', '318 KB', '{n:70-140} ms']
+      ],
+      parse: 'ranking {n:8-12} GNE types by 24h notable volume',
+      confirm: ['200 OK', 'top GNE types ranked']
+    }
+  };
+
+  // Event Volume (tall · grows · blue) — live notable-event firing stream over 24h.
+  S['02-event-volume'] = {
+    base: 'tele', theme: 'blue', fontPx: 14,
+    v: {
+      headline: 'GNE telemetry · counting notable firings (24h)',
+      channel: 'gne.firings.stream',
+      rx: 'rx {n:40-480} firings · {pick:auth|malware|recon|exfil|policy|c2|brute} · buf {n:12-98}%',
+      confirm: ['STREAM LIVE', '24h event volume computed']
+    }
+  };
+
+  // New Critical / High (SHORT card · red) — tail newest critical/high events (last 60m).
+  // Keep intro brief + fontPx small so the few visible lines aren't clipped.
+  S['02-new-critical'] = {
+    base: 'shell', theme: 'red', fontPx: 13,
+    v: {
+      host: 'goc@gne-detect.glesec.internal',
+      cmd: './gne tail --severity=critical,high --window=60m',
+      steps: [
+        'subscribing notable index',
+        'filtering severity >= HIGH',
+        'joining case correlation',
+        'enriching {pick:asset|user|geo} context',
+        'scoring {n:1-9} new events',
+        'de-duplicating alerts'
+      ],
+      tail: 'streaming last-60m criticals …',
+      confirm: ['CONNECTED', '{n:1-9} new critical/high']
+    }
+  };
+
+  // GNE Engine Health (tall · grows · green) — detection-engine self-test / boot checklist
+  // guarding against silent search failures.
+  S['02-engine-health'] = {
+    base: 'boot', theme: 'green', fontPx: 14,
+    v: {
+      head: 'SKYWATCH GOC · GNE Detection Engine  v4.8.1',
+      post: 'POST  scheduler ok · search-peers 8/8 ok · skew 0 ms',
+      units: [
+        'start gne-detection.service',
+        'attach kafka topic gne.events',
+        'load correlation rules ({n:380-460})',
+        'verify search peers ({n:6-8}/8)',
+        'check last-run freshness',
+        'arm silent-failure guard'
+      ],
+      spins: [
+        'self-test detection rules',
+        'probe splunk search heads',
+        'reindex notable window'
+      ],
+      confirm: ['READY', 'detection engine healthy']
+    }
+  };
+
+})(window.__SW_SKELS = window.__SW_SKELS || {});
+
+
+/* ===== skeletons/03-threat.js                                          ===== */
+
+/* ============================================================================
+   Wall 03 — Threat Level & Active Conditions · terminal loading skeletons.
+   Only the tall "Contributing TAC Cases" table gets a fake-console boot; the
+   banner, Level Counters and Escalation Strip fall back to plain shimmer.
+   Pure-data config consumed by skeletons/00-engine.js (tokens: {n} {n:LO-HI} {pick:a|b|c}).
+   ============================================================================ */
+(function (S) {
+
+  // Contributing TAC Cases (tall table · blue) — dev-console request log against
+  // case management: pull the open TAC queue + threat-level data, correlate by
+  // asset, then rank the cases contributing to the current threat level.
+  S['03-tac-cases'] = {
+    base: 'api', theme: 'blue', fontPx: 16,
+    v: {
+      open: 'connecting case management · TAC remediation queue',
+      reqs: [
+        ['POST', '/api/get-incidents-remediation-cases', '{n:380-560} KB', '{n:90-180} ms'],
+        ['GET ', '/api/get-threat-level-data', '{n:72-96} KB', '{n:30-60} ms'],
+        ['GET ', '/api/cases?status=open&tier=L{n:3-5}', '{n:120-380} KB', '{n:40-90} ms'],
+        ['POST', '/api/cases/correlate?by=asset', '{n:160-240} KB', '{n:70-140} ms'],
+        ['GET ', '/api/cases/{n:4000-9000}/timeline', '{n:18-64} KB', '{n:20-55} ms']
+      ],
+      parse: 'ranking {n:5-12} contributing TAC cases · sort by severity',
+      confirm: ['200 OK', 'contributing cases loaded']
+    }
+  };
+
+})(window.__SW_SKELS = window.__SW_SKELS || {});
+
+
+/* ===== skeletons/04-cases.js                                           ===== */
+
+/* ============================================================================
+   Wall 04 — Cases / Response Command · terminal loading skeletons.
+   Tailored "fake boot console" for the two large table widgets; the KPI row +
+   small widgets fall back to plain shimmer. Pure-data configs consumed by
+   skeletons/00-engine.js (tokens: {n} {n:LO-HI} {pick:a|b|c}).
+   ============================================================================ */
+(function (S) {
+
+  // Action-Required Cases (table · red) — parallel triage pipeline over the TAC
+  // queue: open cases -> SLA breach scan -> priority scoring -> assignee routing.
+  S['04-action-cases'] = {
+    base: 'pipe', theme: 'red', fontPx: 14,
+    v: {
+      headline: 'initializing case triage pipeline',
+      attach: 'attaching to tac-queue · partitions 0–7',
+      unit: 'cases', shard: 'batch',
+      bars: ['fetch open cases', 'sla breach scan', 'priority scoring', 'assignee routing'],
+      tail: 'sorting {n:80-200} action-required cases …',
+      confirm: ['CONNECTED', 'action-required backlog synced']
+    }
+  };
+
+  // Queue Heatmap (table · violet) — SSH into the case store, cross-tab cases by
+  // queue × status and build the density matrix.
+  S['04-queue-heatmap'] = {
+    base: 'shell', theme: 'violet', fontPx: 14,
+    v: {
+      host: 'goc@cases-db.glesec.internal',
+      cmd: './cases heatmap --by=queue,status',
+      steps: [
+        'querying case store',
+        'bucketing by queue',
+        'cross-tab by status',
+        'counting {pick:open|ack|wip|hold|closed}',
+        'computing density matrix',
+        'normalizing color scale',
+        'sorting {n:6-14} queues'
+      ],
+      tail: 'rendering queue × status matrix …',
+      confirm: ['CONNECTED', 'queue heatmap built']
+    }
+  };
+
+})(window.__SW_SKELS = window.__SW_SKELS || {});
+
+
+/* ===== skeletons/05-map.js                                             ===== */
+
+/* ============================================================================
+   Wall 05 — Threat Intelligence Activity (Live Attack Map) · terminal skeletons.
+   Only the TALL right-column "Live Attack Feed" gets a tailored console — a live
+   geo attack stream (source→destination, MSS-DDOS). The map cell reuses the live
+   Leaflet map (archetype:'map' graticule skeleton) and the counters keep their
+   shimmer, so neither is keyed here.
+   Pure-data config consumed by skeletons/00-engine.js (tokens: {n} {n:LO-HI} {pick:a|b|c}).
+   ============================================================================ */
+(function (S) {
+
+  // Live Attack Feed (tall · grows · red) — telemetry uplink that subscribes the
+  // MSS-DDOS inbound attack stream and rx's geolocated source→destination hits.
+  S['05-attack-feed'] = {
+    base: 'tele', theme: 'red', fontPx: 15,
+    v: {
+      headline: 'SKYWATCH SOC · subscribing live attack feed',
+      channel: 'mss-ddos.inbound · geo-enriched',
+      rx: 'rx {pick:US|BR|DE|SG|NL|GB|CN|RU|IN|UA|TR|VN} {pick:198.51|203.0|185.220|45.155|91.218}.{n:0-255}.{n:1-254} → {pick:NYC|LON|SAO|FRA|SIN} · {pick:SYN flood|UDP amp|DNS amp|HTTP flood|NTP amp|port scan} · {n:1-40} Gbps',
+      confirm: ['STREAM LIVE', 'attack feed established · geo locked']
+    }
+  };
+
+})(window.__SW_SKELS = window.__SW_SKELS || {});
+
+
+/* ===== skeletons/06-prtg.js                                            ===== */
+
+/* ============================================================================
+   Wall 06 — MSS-CSM PRTG Service Health · terminal loading skeletons.
+   Each key is a tailored "fake boot console" for one large/table widget; small
+   widgets (gauges, infra/cert check, ping chart) fall back to plain shimmer.
+   Pure-data configs consumed by skeletons/00-engine.js (tokens: {n} {n:LO-HI} {pick:a|b|c}).
+   ============================================================================ */
+(function (S) {
+
+  // Critical Services Down (table · red) — SSH into PRTG, fetch DOWN/critical sensors.
+  S['06-critical-down'] = {
+    base: 'shell', theme: 'red', fontPx: 15,
+    v: {
+      host: 'goc-relay@prtg-core.glesec.internal',
+      cmd: './prtg fetch --sensors --state=down --priority=critical',
+      steps: [
+        'authenticating PRTG api token',
+        'opening secure channel (TLS 1.3)',
+        'enumerating {n:1100-1400} sensors',
+        'filtering state = DOWN',
+        'polling {pick:core|edge|dmz|wan|vpn}-probe-{n:1-14}',
+        'correlating outage windows',
+        'resolving {n:3-9} critical services',
+        'computing downtime SLA'
+      ],
+      tail: 'streaming critical outages …',
+      confirm: ['CONNECTED', 'critical sensors resolved']
+    }
+  };
+
+  // Service Degradation & Warnings (table · amber) — decrypt a "warnings" payload.
+  S['06-degradation'] = {
+    base: 'hex', theme: 'amber', fontPx: 14,
+    v: {
+      file: 'sensor-degradation.bin',
+      steps: ['decrypt block {n:1-64}', 'verify HMAC chunk {n:1-64}', 'inflate warning stream', 'parse sensor thresholds'],
+      confirm: ['INTEGRITY VERIFIED', '{n:6-19} warnings parsed']
+    }
+  };
+
+  // Availability by Client (table · cyan) — traceroute + ICMP reachability.
+  S['06-availability'] = {
+    base: 'trace', theme: 'cyan', fontPx: 14,
+    v: {
+      target: 'goc-edge.glesec.net', node: 'prtg-core', ttl: 57, base: 11.0,
+      confirm: ['LINK HEALTHY', '{n:8-14} clients reachable']
+    }
+  };
+
+})(window.__SW_SKELS = window.__SW_SKELS || {});
 
 
 /* ===== walls/01-csa.js                                                 ===== */
@@ -732,8 +1401,8 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     cols: [
       [ { title: 'Top Risk Domain', archetype: 'hero' },
         { title: 'Posture Trend', sub: 'Domain trajectory', accent: 'cyan', archetype: 'inline' },
-        { title: 'Domain Risk Index', sub: 'All 7 sectors', accent: 'orange', archetype: 'bars', rows: 7, grow: true } ],
-      [ { title: 'Security Domain Radar', sub: '7-sector risk surface', accent: 'cyan', archetype: 'radar', bodyClass: 'nopad', grow: true } ],
+        { title: 'Domain Risk Index', sub: 'All 7 sectors', accent: 'orange', archetype: 'terminal', term: '01-domain-risk', fallback: 'bars', rows: 7, grow: true, bodyClass: 'nopad' } ],
+      [ { title: 'Security Domain Radar', sub: '7-sector risk surface', accent: 'cyan', archetype: 'terminal', term: '01-radar', fallback: 'radar', bodyClass: 'nopad', grow: true } ],
       [ { title: 'Contributing Conditions', meta: true, accent: 'orange', archetype: 'feed', rows: 5, bodyClass: 'nopad' },
         { title: 'Threat Level', archetype: 'tile', grow: true } ],
     ],
@@ -1021,13 +1690,13 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     columns: '1.5fr 1fr', rows: '1fr',
     cells: [
       { stack: [
-        { title: 'Top 10 GNE Types', sub: 'Last 24 hours', accent: 'cyan', meta: true, archetype: 'table', rows: 8, tcols: 6, bodyClass: 'nopad' },
-        { title: 'Event Volume', sub: 'Firings · last 24h', accent: 'blue', archetype: 'bars', rows: 8, grow: true },
+        { title: 'Top 10 GNE Types', sub: 'Last 24 hours', accent: 'cyan', meta: true, archetype: 'terminal', term: '02-top-gne', fallback: 'table', rows: 8, tcols: 6, bodyClass: 'nopad' },
+        { title: 'Event Volume', sub: 'Firings · last 24h', accent: 'blue', archetype: 'terminal', term: '02-event-volume', fallback: 'bars', rows: 8, grow: true, bodyClass: 'nopad' },
       ] },
       { stack: [
-        { title: 'New Critical / High', sub: 'Last 60 minutes', accent: 'red', archetype: 'table', rows: 5, tcols: 6, bodyClass: 'nopad' },
+        { title: 'New Critical / High', sub: 'Last 60 minutes', accent: 'red', archetype: 'terminal', term: '02-new-critical', fallback: 'table', rows: 5, tcols: 6, bodyClass: 'nopad' },
         { title: 'Trending Analysis', sub: 'Summarized trajectory', accent: 'violet', archetype: 'metrics3', bodyClass: 'pad' },
-        { title: 'GNE Engine Health', sub: 'Preventing silent failures', accent: 'green', archetype: 'table', rows: 6, tcols: 5, bodyClass: 'nopad', grow: true },
+        { title: 'GNE Engine Health', sub: 'Preventing silent failures', accent: 'green', archetype: 'terminal', term: '02-engine-health', fallback: 'table', rows: 6, tcols: 5, bodyClass: 'nopad', grow: true },
       ] },
     ],
   };
@@ -1214,7 +1883,7 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
         { title: 'Escalation Strip', sub: 'Critical only · L4 / L5', accent: 'red', archetype: 'check', cardStyle: { flex: '3 1 0' } },
       ] },
       { stack: [
-        { title: 'Contributing TAC Cases', sub: 'Most recent', accent: 'blue', meta: true, archetype: 'table', rows: 10, tcols: 5, bodyClass: 'nopad', grow: true },
+        { title: 'Contributing TAC Cases', sub: 'Most recent', accent: 'blue', meta: true, archetype: 'terminal', term: '03-tac-cases', fallback: 'table', rows: 10, tcols: 5, bodyClass: 'nopad', grow: true },
       ] },
     ],
   };
@@ -1425,8 +2094,8 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     cells: [
       { raw: 'kpiRow', n: 6 },
       { grid: '1.55fr 1fr', cards: [
-        { title: 'Action-Required Cases', sub: 'Severe backlog', meta: true, accent: 'red', archetype: 'table', rows: 10, tcols: 6, bodyClass: 'nopad' },
-        { title: 'Queue Heatmap', sub: 'Cases by queue & status', accent: 'violet', archetype: 'table', rows: 5, tcols: 5, bodyClass: 'nopad', grow: true },
+        { title: 'Action-Required Cases', sub: 'Severe backlog', meta: true, accent: 'red', archetype: 'terminal', term: '04-action-cases', fallback: 'table', rows: 10, tcols: 6, bodyClass: 'nopad' },
+        { title: 'Queue Heatmap', sub: 'Cases by queue & status', accent: 'violet', archetype: 'terminal', term: '04-queue-heatmap', fallback: 'table', rows: 5, tcols: 5, bodyClass: 'nopad', grow: true },
       ] },
     ],
   };
@@ -1831,7 +2500,7 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
         { title: 'Attack Counters', sub: 'Critical & High · 1h / 24h / 7d', accent: 'red', archetype: 'counters3', bodyClass: 'nopad' },
         { title: 'Live Attack Map', sub: 'Inbound · MSS-DDOS', accent: 'cyan', meta: true, archetype: 'map', bodyClass: 'nopad', grow: true },
       ] },
-      { title: 'Live Attack Feed', sub: 'Source → Destination', accent: 'red', meta: true, archetype: 'table', rows: 12, tcols: 4, bodyClass: 'nopad', grow: true },
+      { title: 'Live Attack Feed', sub: 'Source → Destination', accent: 'red', meta: true, archetype: 'terminal', term: '05-attack-feed', fallback: 'table', rows: 12, tcols: 4, bodyClass: 'nopad', grow: true },
     ],
   };
   /* ---- live adapter: scrape the wall's OWN rendered DOM ----------------------------
@@ -2058,12 +2727,12 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     cells: [
       { raw: 'gaugeStrip', n: 4 },
       { grid: '1.5fr 1fr', cards: [
-        { title: 'Critical Services Down', sub: 'Active outages', accent: 'red', meta: true, archetype: 'table', rows: 5, tcols: 8, bodyClass: 'nopad' },
-        { title: 'Service Degradation & Warnings', sub: 'Sensor warnings', accent: 'yellow', archetype: 'table', rows: 5, tcols: 6, bodyClass: 'nopad' },
+        { title: 'Critical Services Down', sub: 'Active outages', accent: 'red', meta: true, archetype: 'terminal', term: '06-critical-down', fallback: 'table', rows: 5, tcols: 8, bodyClass: 'nopad' },
+        { title: 'Service Degradation & Warnings', sub: 'Sensor warnings', accent: 'yellow', archetype: 'terminal', term: '06-degradation', fallback: 'table', rows: 5, tcols: 6, bodyClass: 'nopad' },
       ] },
       { grid: '0.8fr 1.1fr 1.6fr', cards: [
         { title: 'Infrastructure & Certificates', archetype: 'check' },
-        { title: 'Availability by Client', accent: 'cyan', archetype: 'table', rows: 6, tcols: 3, bodyClass: 'nopad' },
+        { title: 'Availability by Client', accent: 'cyan', archetype: 'terminal', term: '06-availability', fallback: 'table', rows: 6, tcols: 3, bodyClass: 'nopad' },
         { title: 'Ping Response Time', sub: 'ms · last hours', accent: 'cyan', archetype: 'chart', bodyClass: 'pad' },
       ] },
     ],
@@ -2474,13 +3143,35 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     var root = holder.firstChild;
     if (!root) return;
 
-    place(root);
-    state.rendered = true;
-    state.sig = sig;                                    // remember what we just painted (change-detection)
-    state.lastGoodAt = Date.now();
-    try { window.__SW_LAST_D = d; } catch (e) {}        // debug hook (harness introspection)
-    setIndicator('idle');
-    log('rendered (' + (why || 'init') + ')');
+    function commit(node) {
+      place(node);
+      state.rendered = true;
+      state.sig = sig;                                  // remember what we just painted (change-detection)
+      state.lastGoodAt = Date.now();
+      state.finishing = false;
+      try { window.__SW_LAST_D = d; } catch (e) {}      // debug hook (harness introspection)
+      setIndicator('idle');
+      log('rendered (' + (why || 'init') + ')');
+    }
+
+    // First real paint after a terminal skeleton: let each console print its green
+    // "Connected" line, hold ~1s, THEN swap in the live wall. Guarded so a missing
+    // controller / throw can never block the wall (it still commits after the beat).
+    if (!state.rendered && state.node && !state.finishing) {
+      var terms = state.node.querySelectorAll ? state.node.querySelectorAll('.sw-term') : null;
+      if (terms && terms.length) {
+        state.finishing = true;
+        for (var ti = 0; ti < terms.length; ti++) {
+          var tc = terms[ti].__swTerm;
+          if (tc && tc.finish) { try { tc.finish(); } catch (e) {} }
+        }
+        var rootToPlace = root;
+        setTimeout(function () { commit(rootToPlace); }, 1200);   // ~1.2s: long enough for the green "Connected" line to land
+        return;
+      }
+    }
+    if (state.finishing) return;                        // a connect beat is in flight — ignore interim re-renders
+    commit(root);
   }
 
   /* ---- 4. refresh affordances: subtle pulse + stale marker + live clock ----- */
