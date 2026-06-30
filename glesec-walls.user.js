@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GLESEC SKYWATCH Monitor Walls
 // @namespace    glesec-tools
-// @version      1.0.46
+// @version      1.0.49
 // @description  Restyle all 6 GLESEC SKYWATCH SOC monitor walls in place, driven by the walls' own live data. Generated — edit redesign/ source, not this file.
 // @author       GLESEC GOC
 // @match        https://intranet.glesec.com/radar-wall/*
@@ -12,15 +12,15 @@
 // @match        https://intranet.glesec.com/mss-csm-prtg/*
 // @run-at       document-start
 // @grant        none
-// @updateURL    https://raw.githubusercontent.com/glesec-tools/monitor-wall-tampermonkey/main/glesec-walls.user.js
-// @downloadURL  https://raw.githubusercontent.com/glesec-tools/monitor-wall-tampermonkey/main/glesec-walls.user.js
+// @updateURL    https://raw.githubusercontent.com/glesec-mss/monitor-wall-tampermonkey/main/glesec-walls.user.js
+// @downloadURL  https://raw.githubusercontent.com/glesec-mss/monitor-wall-tampermonkey/main/glesec-walls.user.js
 // ==/UserScript==
 (function () {
 'use strict';
 
 /* ===== theme.css (exposed for boot)                                    ===== */
 
-window.SW_THEME_CSS = "/* ============================================================================\r\n   SKYWATCH — Unified Monitor-Wall Design System\r\n   shadcn / neutral-dark aesthetic, vivid operational status colors\r\n   Authored for 1920x1080 always-on SOC video walls (display-only).\r\n   ============================================================================ */\r\n@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');\r\n\r\n:root {\r\n  /* ---- neutral surfaces (shadcn \"neutral\" dark, slightly deepened) ---- */\r\n  --bg:            #08080a;\r\n  --bg-grad-a:     #0b0b0e;\r\n  --bg-grad-b:     #060608;\r\n  --surface:       #0f0f12;   /* card */\r\n  --surface-2:     #141418;   /* inner / elevated */\r\n  --surface-3:     #1a1a1f;   /* hover / chips */\r\n  --border:        rgba(255,255,255,0.075);\r\n  --border-2:      rgba(255,255,255,0.12);\r\n  --hairline:      rgba(255,255,255,0.05);\r\n\r\n  /* ---- foreground ---- */\r\n  --fg:            #fafafa;\r\n  --fg-muted:      #a1a1aa;   /* zinc-400 */\r\n  --fg-subtle:     #71717a;   /* zinc-500 */\r\n  --fg-faint:      #52525b;   /* zinc-600 */\r\n\r\n  /* ---- semantic status (vivid, meaningful) ---- */\r\n  --green:   #22c55e;\r\n  --yellow:  #eab308;\r\n  --orange:  #f97316;\r\n  --red:     #ef4444;\r\n  --blue:    #3b82f6;\r\n  --violet:  #8b5cf6;\r\n  --cyan:    #22d3ee;\r\n\r\n  /* threat tiers (GLESEC escalation codes) */\r\n  --t1: #22c55e;   /* NONE  / green  */\r\n  --t2: #eab308;   /* SBEAR / yellow */\r\n  --t3: #f97316;   /* TEAR  / orange */\r\n  --t4: #ef4444;   /* TEVR  / red    */\r\n  --t5: #d4d4d8;   /* INCIDENT / black tier -> light ink on black */\r\n\r\n  /* severity palette — CANONICAL SOURCE is SW.SEV in common.js (these mirror it and are also\r\n     set at runtime from there). Scheme: low=yellow, medium=orange, high=red, critical=pink/red. */\r\n  --sev-critical: #ff2d6e;\r\n  --sev-high:     #ef4444;\r\n  --sev-medium:   #f97316;\r\n  --sev-low:      #eab308;\r\n  --sev-info:     #38bdf8;\r\n\r\n  --radius:    14px;\r\n  --radius-sm: 9px;\r\n  --radius-xs: 7px;\r\n\r\n  --font: 'Inter', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;\r\n  --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;\r\n\r\n  --shadow: 0 1px 0 0 rgba(255,255,255,0.04) inset,\r\n            0 18px 40px -24px rgba(0,0,0,0.9);\r\n}\r\n\r\n* { box-sizing: border-box; }\r\nhtml, body { margin: 0; padding: 0; }\r\n\r\n.sw-root {\r\n  width: 1920px; height: 1080px;\r\n  background:\r\n    radial-gradient(1200px 700px at 78% -10%, rgba(59,130,246,0.05), transparent 60%),\r\n    radial-gradient(1000px 800px at 10% 110%, rgba(139,92,246,0.04), transparent 60%),\r\n    linear-gradient(160deg, var(--bg-grad-a), var(--bg-grad-b));\r\n  color: var(--fg);\r\n  font-family: var(--font);\r\n  font-size: 15px;\r\n  line-height: 1.45;\r\n  letter-spacing: 0.01em;\r\n  -webkit-font-smoothing: antialiased;\r\n  text-rendering: optimizeLegibility;\r\n  display: flex; flex-direction: column;\r\n  overflow: hidden;\r\n  position: relative;\r\n}\r\n.sw-root::before { /* faint grid texture */\r\n  content: \"\"; position: absolute; inset: 0; pointer-events: none;\r\n  background-image:\r\n    linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),\r\n    linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);\r\n  background-size: 48px 48px;\r\n  mask-image: radial-gradient(120% 120% at 50% 0%, #000 30%, transparent 90%);\r\n}\r\n\r\n/* ---------------------------------------------------------------- topbar -- */\r\n.sw-topbar {\r\n  flex: 0 0 auto;\r\n  height: 64px;\r\n  display: flex; align-items: center; gap: 18px;\r\n  padding: 0 30px;\r\n  border-bottom: 1px solid var(--border);\r\n  background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);\r\n  position: relative; z-index: 2;\r\n}\r\n.sw-brand { display: flex; align-items: center; gap: 12px; }\r\n.sw-brand__logo {\r\n  width: 32px; height: 32px; border-radius: 9px;\r\n  background: linear-gradient(180deg, #16191d, #0b0d10);\r\n  border: 1px solid rgba(255,255,255,0.08);\r\n  display: grid; place-items: center; flex: 0 0 auto;\r\n  box-shadow: 0 6px 14px -6px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.12);\r\n}\r\n.sw-brand__logo svg { width: 22px; height: 22px; filter: drop-shadow(0 0 2px rgba(147,232,223,0.85)); }\r\n.sw-brand__name { font-size: 15px; font-weight: 800; letter-spacing: 0.14em; }\r\n.sw-brand__name b { color: var(--fg); }\r\n.sw-brand__name span { color: var(--cyan); }\r\n.sw-brand__div { width: 1px; height: 26px; background: var(--border-2); margin: 0 4px; }\r\n.sw-title {\r\n  font-size: 15px; font-weight: 600; color: var(--fg);\r\n  letter-spacing: 0.02em;\r\n}\r\n.sw-title small { display:block; font-size: 11px; font-weight: 500; color: var(--fg-subtle); letter-spacing: 0.18em; text-transform: uppercase; }\r\n.sw-topbar__spacer { flex: 1 1 auto; }\r\n\r\n.sw-chip {\r\n  display: inline-flex; align-items: center; gap: 9px;\r\n  height: 38px; padding: 0 15px;\r\n  background: var(--surface-2);\r\n  border: 1px solid var(--border);\r\n  border-radius: 10px;\r\n  font-size: 13px; color: var(--fg-muted);\r\n  letter-spacing: 0.02em;\r\n}\r\n.sw-chip b { color: var(--fg); font-weight: 600; }\r\n.sw-chip__label { color: var(--fg-faint); text-transform: uppercase; font-size: 10.5px; letter-spacing: 0.14em; font-weight: 600; }\r\n.sw-clock { font-family: var(--mono); font-weight: 500; font-variant-numeric: tabular-nums; }\r\n\r\n.sw-status {\r\n  --c: var(--green);\r\n  display:inline-flex; align-items:center; gap:9px;\r\n  height:38px; padding:0 16px; border-radius:10px;\r\n  font-size:12.5px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase;\r\n  background: color-mix(in srgb, var(--c) 13%, transparent);\r\n  border:1px solid color-mix(in srgb, var(--c) 36%, transparent);\r\n  color: color-mix(in srgb, var(--c) 72%, white);\r\n}\r\n.sw-status .dot { width:9px;height:9px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c); animation: pulse 2.4s infinite; }\r\n/* tone follows derived severity so the pill colour never lies */\r\n.sw-status.tone-green  { --c: var(--green); }\r\n.sw-status.tone-yellow { --c: var(--yellow); }\r\n.sw-status.tone-orange { --c: var(--orange); }\r\n.sw-status.tone-red, .sw-status.is-degraded { --c: var(--red); }\r\n/* neutral status shown while loading — claims nothing about live health */\r\n.sw-status.is-loading { --c: var(--fg-subtle); background: var(--surface-3); border-color: var(--border-2); color: var(--fg-subtle); }\r\n.sw-status.is-loading .dot { box-shadow: none; animation: none; }\r\n\r\n/* --------------------------------------------------------------- content -- */\r\n.sw-main {\r\n  flex: 1 1 auto;\r\n  padding: 22px 30px 24px;\r\n  display: grid;\r\n  gap: 18px;\r\n  position: relative; z-index: 1;\r\n  min-height: 0;\r\n}\r\n\r\n/* ---- card ---- */\r\n.sw-card {\r\n  background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--surface) 88%, #000));\r\n  border: 1px solid var(--border);\r\n  border-radius: var(--radius);\r\n  box-shadow: var(--shadow);\r\n  display: flex; flex-direction: column;\r\n  min-height: 0; overflow: hidden;\r\n}\r\n.sw-card__head {\r\n  flex: 0 0 auto;\r\n  display: flex; align-items: center; justify-content: space-between; gap: 16px;\r\n  padding: 15px 20px 13px;\r\n  border-bottom: 1px solid var(--hairline);\r\n}\r\n.sw-card__head-left { display: flex; align-items: center; gap: 12px; min-width: 0; }\r\n.sw-card__head-right { display: flex; align-items: baseline; gap: 14px; flex: 0 0 auto; text-align: right; }\r\n.sw-card__accent { width: 3px; height: 15px; border-radius: 3px; background: var(--fg-faint); flex: 0 0 auto; }\r\n.sw-card__title { font-size: 13px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }\r\n.sw-card__sub { font-size: 12px; font-weight: 500; color: var(--fg-subtle); letter-spacing: 0.04em; white-space: nowrap; }\r\n.sw-card__meta { font-size: 11.5px; color: var(--fg-faint); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; white-space: nowrap; }\r\n.sw-card__body { flex: 1 1 auto; padding: 8px 20px 16px; min-height: 0; overflow: hidden; }\r\n.sw-card__body.pad { padding: 18px 20px; }\r\n.sw-card__body.nopad { padding: 0; }\r\n\r\n/* accent colour helpers */\r\n.acc-green  .sw-card__accent, .sw-card__accent.acc-green  { background: var(--green);  box-shadow:0 0 10px color-mix(in srgb,var(--green) 60%, transparent); }\r\n.acc-yellow .sw-card__accent, .sw-card__accent.acc-yellow { background: var(--yellow); box-shadow:0 0 10px color-mix(in srgb,var(--yellow) 60%, transparent); }\r\n.acc-orange .sw-card__accent, .sw-card__accent.acc-orange { background: var(--orange); box-shadow:0 0 10px color-mix(in srgb,var(--orange) 60%, transparent); }\r\n.acc-red    .sw-card__accent, .sw-card__accent.acc-red    { background: var(--red);    box-shadow:0 0 10px color-mix(in srgb,var(--red) 60%, transparent); }\r\n.acc-blue   .sw-card__accent, .sw-card__accent.acc-blue   { background: var(--blue);   box-shadow:0 0 10px color-mix(in srgb,var(--blue) 60%, transparent); }\r\n.acc-cyan   .sw-card__accent, .sw-card__accent.acc-cyan   { background: var(--cyan);   box-shadow:0 0 10px color-mix(in srgb,var(--cyan) 60%, transparent); }\r\n.acc-violet .sw-card__accent, .sw-card__accent.acc-violet { background: var(--violet); box-shadow:0 0 10px color-mix(in srgb,var(--violet) 60%, transparent); }\r\n\r\n/* ---- table ---- */\r\n.sw-table { width: 100%; border-collapse: collapse; font-size: 14px; }\r\n.sw-table thead th {\r\n  text-align: left; font-weight: 600; color: var(--fg-faint);\r\n  font-size: 11px; letter-spacing: 0.11em; text-transform: uppercase;\r\n  padding: 9px 12px; border-bottom: 1px solid var(--border);\r\n  white-space: nowrap;\r\n}\r\n.sw-table tbody td {\r\n  padding: 13px 14px; border-bottom: 1px solid var(--hairline);\r\n  color: var(--fg-muted); vertical-align: middle;\r\n}\r\n.sw-table.roomy tbody td { padding: 17px 14px; }\r\n.sw-table.compact { font-size: 12.5px; }\r\n.sw-table.compact thead th { padding: 7px 9px; font-size: 10px; letter-spacing: 0.09em; }\r\n.sw-table.compact tbody td { padding: 8px 9px; }\r\n.sw-table tbody tr:last-child td { border-bottom: none; }\r\n.sw-table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.012); }\r\n.sw-table .num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); color: var(--fg); }\r\n.sw-table .strong { color: var(--fg); font-weight: 600; }\r\n.sw-table .muted { color: var(--fg-subtle); }\r\n.sw-table .mono { font-family: var(--mono); font-size: 13px; }\r\n/* auto-scroll feed (05 map): the column header is a SEPARATE element above the clipped scroll\r\n   area (not a table header), so scrolling rows are physically clipped below it and can never leak\r\n   into it. Header + rows share the same grid column template (set inline per wall). */\r\n.sw-feed-head {\r\n  display: grid; align-items: center; column-gap: 14px;\r\n  flex: 0 0 auto; padding: 9px 12px 8px; border-bottom: 1px solid var(--border);\r\n  font-size: 11px; font-weight: 600; letter-spacing: 0.11em; text-transform: uppercase;\r\n  color: var(--fg-faint); white-space: nowrap;\r\n}\r\n.sw-feed-row {\r\n  display: grid; align-items: center; column-gap: 14px;\r\n  padding: 12px 12px; border-bottom: 1px solid var(--hairline);\r\n  color: var(--fg-muted); font-size: 14px;\r\n}\r\n.sw-feed-row .strong { color: var(--fg); font-weight: 600; }\r\n.sw-feed-row .muted { color: var(--fg-subtle); }\r\n.sw-feed-row .mono { font-family: var(--mono); }\r\n.sw-rank { color: var(--fg-faint); font-family: var(--mono); font-weight:600; }\r\n\r\n/* ---- badge ---- */\r\n.sw-badge {\r\n  --c: var(--fg-subtle);\r\n  display: inline-flex; align-items: center; gap: 6px;\r\n  padding: 3px 9px; border-radius: 999px;\r\n  font-size: 11.5px; font-weight: 600; letter-spacing: 0.04em;\r\n  background: color-mix(in srgb, var(--c) 15%, transparent);\r\n  border: 1px solid color-mix(in srgb, var(--c) 36%, transparent);\r\n  color: color-mix(in srgb, var(--c) 62%, white);\r\n  white-space: nowrap; line-height: 1.3;\r\n}\r\n.sw-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c); }\r\n.sw-badge.solid { background: var(--c); color: #0a0a0a; border-color: transparent; font-weight: 700; }\r\n.sw-badge.is-critical { --c: var(--sev-critical); }\r\n.sw-badge.is-high     { --c: var(--sev-high); }\r\n.sw-badge.is-medium   { --c: var(--sev-medium); }\r\n.sw-badge.is-low      { --c: var(--sev-low); }\r\n.sw-badge.is-info     { --c: var(--sev-info); }\r\n.sw-badge.is-none, .sw-badge.is-t1 { --c: var(--t1); }\r\n.sw-badge.is-sbear, .sw-badge.is-t2 { --c: var(--t2); }\r\n.sw-badge.is-tear,  .sw-badge.is-t3 { --c: var(--t3); }\r\n.sw-badge.is-tevr,  .sw-badge.is-t4 { --c: var(--t4); }\r\n.sw-badge.is-open    { --c: var(--blue); }\r\n.sw-badge.is-ok      { --c: var(--green); }\r\n.sw-badge.is-down    { --c: var(--red); }\r\n.sw-badge.is-warn    { --c: var(--yellow); }\r\n.sw-badge.is-breach  { --c: var(--red); }\r\n\r\n/* ---- kpi ---- */\r\n.sw-kpi {\r\n  --c: var(--fg-muted);\r\n  position: relative;\r\n  background: linear-gradient(180deg, var(--surface), color-mix(in srgb,var(--surface) 86%, #000));\r\n  border: 1px solid var(--border);\r\n  border-radius: var(--radius);\r\n  padding: 16px 18px 15px;\r\n  display: flex; flex-direction: column; gap: 4px;\r\n  overflow: hidden;\r\n}\r\n.sw-kpi::before { content:\"\"; position:absolute; left:0; top:0; bottom:0; width:3px; background: var(--c); box-shadow: 0 0 16px color-mix(in srgb, var(--c) 55%, transparent); }\r\n.sw-kpi::after { content:\"\"; position:absolute; right:-30px; top:-30px; width:120px; height:120px; border-radius:50%; background: radial-gradient(circle, color-mix(in srgb,var(--c) 16%, transparent), transparent 70%); }\r\n.sw-kpi__label { font-size: 11.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg-subtle); }\r\n.sw-kpi__value { font-size: 46px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--fg); }\r\n.sw-kpi__value.tint { color: color-mix(in srgb, var(--c) 72%, white); }\r\n.sw-kpi__foot { font-size: 12px; color: var(--fg-faint); font-weight: 500; }\r\n.sw-kpi.c-red    { --c: var(--red); }\r\n.sw-kpi.c-orange { --c: var(--orange); }\r\n.sw-kpi.c-yellow { --c: var(--yellow); }\r\n.sw-kpi.c-green  { --c: var(--green); }\r\n.sw-kpi.c-blue   { --c: var(--blue); }\r\n.sw-kpi.c-violet { --c: var(--violet); }\r\n\r\n/* ---- trend / metric ---- */\r\n.sw-metric { display:flex; flex-direction:column; gap:10px; padding: 16px 18px; background: var(--surface-2); border:1px solid var(--border); border-radius: var(--radius-sm); }\r\n.sw-metric__label { font-size:12px; color: var(--fg-subtle); font-weight:600; letter-spacing:0.1em; text-transform:uppercase; }\r\n.sw-metric__row { display:flex; align-items:baseline; gap:10px; }\r\n.sw-metric__delta { font-size:34px; font-weight:700; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; display:flex; align-items:center; gap:8px; }\r\n.sw-metric__delta.up { color: var(--green); }\r\n.sw-metric__delta.down { color: var(--red); }\r\n.sw-metric__arrow { font-size:22px; }\r\n.sw-metric__sub { font-size:12px; color: var(--fg-faint); font-family: var(--mono); }\r\n\r\n/* ---- stat bars (level counters) ---- */\r\n.sw-bars { display:flex; flex-direction:column; gap:10px; }\r\n.sw-bar { --c: var(--fg-subtle); position:relative; display:flex; align-items:center; justify-content:space-between;\r\n  height: 46px; padding: 0 16px; border-radius: var(--radius-sm); overflow:hidden;\r\n  background: color-mix(in srgb, var(--c) 12%, var(--surface-2));\r\n  border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);\r\n}\r\n.sw-bar__fill { position:absolute; left:0; top:0; bottom:0; background: color-mix(in srgb, var(--c) 26%, transparent); border-right:2px solid var(--c); }\r\n.sw-bar__name { position:relative; font-size:13.5px; font-weight:600; letter-spacing:0.05em; color: color-mix(in srgb, var(--c) 55%, white); display:flex; align-items:center; gap:10px; }\r\n.sw-bar__dot { width:10px;height:10px;border-radius:50%; background:var(--c); box-shadow:0 0 10px var(--c); }\r\n.sw-bar__val { position:relative; font-size:18px; font-weight:700; font-variant-numeric:tabular-nums; font-family:var(--mono); color: var(--fg); }\r\n.sw-bar.t1 { --c: var(--t1); } .sw-bar.t2 { --c: var(--t2); } .sw-bar.t3 { --c: var(--t3); } .sw-bar.t4 { --c: var(--t4); }\r\n.sw-bar.t5 { --c: #71717a; }\r\n\r\n/* ---- generic helpers ---- */\r\n.sw-eyebrow { font-size:11px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color: var(--fg-faint); }\r\n.sw-big { font-size:54px; font-weight:800; letter-spacing:-0.03em; line-height:1; }\r\n.sw-muted { color: var(--fg-muted); }\r\n.sw-subtle { color: var(--fg-subtle); }\r\n.flex { display:flex; } .col{flex-direction:column;} .center{align-items:center;justify-content:center;}\r\n.gap-s{gap:8px;} .gap-m{gap:14px;} .gap-l{gap:20px;}\r\n.grow{flex:1 1 auto;} .between{justify-content:space-between;}\r\n\r\n/* ---- horizontal bar list (mini bar chart) ---- */\r\n.sw-hbars { display:flex; flex-direction:column; gap:0; height:100%; justify-content:space-around; padding:4px 2px; }\r\n.sw-hbar { display:flex; flex-direction:column; gap:7px; }\r\n.sw-hbar__top { display:flex; justify-content:space-between; align-items:baseline; gap:12px; }\r\n.sw-hbar__name { font-size:13.5px; font-weight:600; color:var(--fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }\r\n.sw-hbar__val { font-size:13px; font-weight:700; font-family:var(--mono); color:var(--fg-muted); flex:0 0 auto; }\r\n.sw-hbar__track { height:11px; border-radius:6px; background:var(--surface-3); overflow:hidden; border:1px solid var(--border); }\r\n.sw-hbar__fill { height:100%; border-radius:6px; box-shadow:0 0 10px -2px currentColor; transition:width 1s ease; }\r\n\r\n/* ---- stacked posture bar ---- */\r\n.sw-stack { display:flex; height:26px; border-radius:8px; overflow:hidden; border:1px solid var(--border); }\r\n.sw-stack > div { height:100%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; color:#0a0a0a; }\r\n.sw-legend { display:flex; gap:18px; margin-top:14px; flex-wrap:wrap; }\r\n.sw-legend > div { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--fg-muted); }\r\n.sw-legend i { width:10px; height:10px; border-radius:3px; display:inline-block; }\r\n\r\n@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.35;} }\r\n@keyframes countup { from { opacity:0; } to { opacity:1; } }\r\n@keyframes sweep { to { transform: rotate(360deg); } }\r\n@keyframes dash { to { stroke-dashoffset: 0; } }\r\n@keyframes arcflow { to { stroke-dashoffset: -1000; } }\r\n@keyframes blip { 0%{transform:scale(0.2);opacity:0.9;} 100%{transform:scale(2.4);opacity:0;} }\r\n\r\n/* ----------------------------------------------------- loading / skeleton -- */\r\n/* Slow, low-contrast shimmer — safe for an always-on 24/7 video wall. */\r\n@keyframes sw-shimmer { 100% { transform: translateX(100%); } }\r\n.sw-skel {\r\n  position: relative; overflow: hidden;\r\n  background: var(--surface-2);\r\n  border-radius: var(--radius-xs);\r\n}\r\n.sw-skel::after {\r\n  content: \"\"; position: absolute; inset: 0; transform: translateX(-100%);\r\n  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06) 50%, transparent);\r\n  animation: sw-shimmer 1.6s ease-in-out infinite;\r\n}\r\n.sw-skel-ring { position: absolute; border: 2px solid var(--border); border-radius: 50%; }\r\n/* card chrome stays crisp while the body shimmers; a hair dimmer signals \"not live yet\" */\r\n.sw-skel-card .sw-card__title { opacity: 0.78; }\r\n\r\n/* ring spinner — reuses the sweep keyframe (refresh indicator / inline fallback) */\r\n.sw-spin { animation: sweep 0.9s linear infinite; transform-origin: center; }\r\n\r\n/* topbar \"refreshing\" indicator — subtle, no layout shift, never a full skeleton */\r\n.sw-refreshing { display: inline-flex; align-items: center; gap: 8px; color: var(--fg-subtle); font-size: 12px; letter-spacing: 0.04em; }\r\n.sw-stale { color: color-mix(in srgb, var(--yellow) 70%, white) !important; }\r\n";
+window.SW_THEME_CSS = "/* ============================================================================\r\n   SKYWATCH — Unified Monitor-Wall Design System\r\n   shadcn / neutral-dark aesthetic, vivid operational status colors\r\n   Authored for 1920x1080 always-on SOC video walls (display-only).\r\n   ============================================================================ */\r\n@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');\r\n\r\n:root {\r\n  /* ---- neutral surfaces (shadcn \"neutral\" dark, slightly deepened) ---- */\r\n  --bg:            #08080a;\r\n  --bg-grad-a:     #0b0b0e;\r\n  --bg-grad-b:     #060608;\r\n  --surface:       #0f0f12;   /* card */\r\n  --surface-2:     #141418;   /* inner / elevated */\r\n  --surface-3:     #1a1a1f;   /* hover / chips */\r\n  --border:        rgba(255,255,255,0.15);\r\n  --border-2:      rgba(255,255,255,0.24);\r\n  --hairline:      rgba(255,255,255,0.08);\r\n\r\n  /* ---- foreground ---- */\r\n  --fg:            #fafafa;\r\n  --fg-muted:      #a1a1aa;   /* zinc-400 */\r\n  --fg-subtle:     #71717a;   /* zinc-500 */\r\n  --fg-faint:      #52525b;   /* zinc-600 */\r\n\r\n  /* ---- semantic status (vivid, meaningful) ---- */\r\n  --green:   #22c55e;\r\n  --yellow:  #eab308;\r\n  --orange:  #f97316;\r\n  --red:     #ef4444;\r\n  --blue:    #3b82f6;\r\n  --violet:  #8b5cf6;\r\n  --cyan:    #22d3ee;\r\n\r\n  /* threat tiers (GLESEC escalation codes) */\r\n  --t1: #22c55e;   /* NONE  / green  */\r\n  --t2: #eab308;   /* SBEAR / yellow */\r\n  --t3: #f97316;   /* TEAR  / orange */\r\n  --t4: #ef4444;   /* TEVR  / red    */\r\n  --t5: #d4d4d8;   /* INCIDENT / black tier -> light ink on black */\r\n\r\n  /* severity palette — CANONICAL SOURCE is SW.SEV in common.js (these mirror it and are also\r\n     set at runtime from there). Scheme: low=yellow, medium=orange, high=red, critical=pink/red. */\r\n  --sev-critical: #ff2d6e;\r\n  --sev-high:     #ef4444;\r\n  --sev-medium:   #f97316;\r\n  --sev-low:      #eab308;\r\n  --sev-info:     #38bdf8;\r\n\r\n  --radius:    14px;\r\n  --radius-sm: 9px;\r\n  --radius-xs: 7px;\r\n\r\n  --font: 'Inter', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;\r\n  --mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;\r\n\r\n  --shadow: 0 1px 0 0 rgba(255,255,255,0.04) inset,\r\n            0 18px 40px -24px rgba(0,0,0,0.9);\r\n}\r\n\r\n* { box-sizing: border-box; }\r\nhtml, body { margin: 0; padding: 0; }\r\n\r\n.sw-root {\r\n  width: 1920px; height: 1080px;\r\n  background:\r\n    radial-gradient(1200px 700px at 78% -10%, rgba(59,130,246,0.05), transparent 60%),\r\n    radial-gradient(1000px 800px at 10% 110%, rgba(139,92,246,0.04), transparent 60%),\r\n    linear-gradient(160deg, var(--bg-grad-a), var(--bg-grad-b));\r\n  color: var(--fg);\r\n  font-family: var(--font);\r\n  font-size: 18px;\r\n  line-height: 1.42;\r\n  letter-spacing: 0.01em;\r\n  -webkit-font-smoothing: antialiased;\r\n  text-rendering: optimizeLegibility;\r\n  display: flex; flex-direction: column;\r\n  overflow: hidden;\r\n  position: relative;\r\n}\r\n.sw-root::before { /* faint grid texture */\r\n  content: \"\"; position: absolute; inset: 0; pointer-events: none;\r\n  background-image:\r\n    linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),\r\n    linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);\r\n  background-size: 48px 48px;\r\n  mask-image: radial-gradient(120% 120% at 50% 0%, #000 30%, transparent 90%);\r\n}\r\n\r\n/* ---------------------------------------------------------------- topbar -- */\r\n.sw-topbar {\r\n  flex: 0 0 auto;\r\n  height: 76px;\r\n  display: flex; align-items: center; gap: 20px;\r\n  padding: 0 34px;\r\n  border-bottom: 1px solid var(--border);\r\n  background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);\r\n  position: relative; z-index: 2;\r\n}\r\n.sw-brand { display: flex; align-items: center; gap: 12px; }\r\n.sw-brand__logo {\r\n  width: 38px; height: 38px; border-radius: 10px;\r\n  background: linear-gradient(180deg, #16191d, #0b0d10);\r\n  border: 1px solid rgba(255,255,255,0.08);\r\n  display: grid; place-items: center; flex: 0 0 auto;\r\n  box-shadow: 0 6px 14px -6px rgba(0,0,0,0.85), inset 0 1px 0 rgba(255,255,255,0.12);\r\n}\r\n.sw-brand__logo svg { width: 26px; height: 26px; filter: drop-shadow(0 0 2px rgba(147,232,223,0.85)); }\r\n.sw-brand__name { font-size: 18px; font-weight: 800; letter-spacing: 0.14em; }\r\n.sw-brand__name b { color: var(--fg); }\r\n.sw-brand__name span { color: var(--cyan); }\r\n.sw-brand__div { width: 1px; height: 30px; background: var(--border-2); margin: 0 4px; }\r\n.sw-title {\r\n  font-size: 18px; font-weight: 600; color: var(--fg);\r\n  letter-spacing: 0.02em;\r\n}\r\n.sw-title small { display:block; font-size: 13px; font-weight: 500; color: var(--fg-subtle); letter-spacing: 0.18em; text-transform: uppercase; }\r\n.sw-topbar__spacer { flex: 1 1 auto; }\r\n\r\n.sw-chip {\r\n  display: inline-flex; align-items: center; gap: 10px;\r\n  height: 46px; padding: 0 18px;\r\n  background: var(--surface-2);\r\n  border: 1px solid var(--border);\r\n  border-radius: 11px;\r\n  font-size: 15.5px; color: var(--fg-muted);\r\n  letter-spacing: 0.02em;\r\n}\r\n.sw-chip b { color: var(--fg); font-weight: 600; }\r\n.sw-chip__label { color: var(--fg-faint); text-transform: uppercase; font-size: 12px; letter-spacing: 0.14em; font-weight: 600; }\r\n.sw-clock { font-family: var(--mono); font-weight: 500; font-variant-numeric: tabular-nums; }\r\n\r\n.sw-status {\r\n  --c: var(--green);\r\n  display:inline-flex; align-items:center; gap:10px;\r\n  height:46px; padding:0 20px; border-radius:11px;\r\n  font-size:15px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase;\r\n  background: color-mix(in srgb, var(--c) 13%, transparent);\r\n  border:1px solid color-mix(in srgb, var(--c) 36%, transparent);\r\n  color: color-mix(in srgb, var(--c) 72%, white);\r\n}\r\n.sw-status .dot { width:9px;height:9px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c); animation: pulse 2.4s infinite; }\r\n/* tone follows derived severity so the pill colour never lies */\r\n.sw-status.tone-green  { --c: var(--green); }\r\n.sw-status.tone-yellow { --c: var(--yellow); }\r\n.sw-status.tone-orange { --c: var(--orange); }\r\n.sw-status.tone-red, .sw-status.is-degraded { --c: var(--red); }\r\n/* neutral status shown while loading — claims nothing about live health */\r\n.sw-status.is-loading { --c: var(--fg-subtle); background: var(--surface-3); border-color: var(--border-2); color: var(--fg-subtle); }\r\n.sw-status.is-loading .dot { box-shadow: none; animation: none; }\r\n\r\n/* ---------------------------------------------------------------- footer -- */\r\n/* Original-wall branding/copyright footer (the live walls carry one); kept subtle. */\r\n.sw-footer {\r\n  flex: 0 0 auto;\r\n  height: 34px;\r\n  display: flex; align-items: center; justify-content: center; gap: 20px;\r\n  border-top: 1px solid var(--border);\r\n  background: linear-gradient(0deg, rgba(255,255,255,0.02), transparent);\r\n  position: relative; z-index: 2;\r\n}\r\n.sw-footer__brand { font-size: 14px; font-weight: 800; letter-spacing: 0.16em; color: var(--cyan); }\r\n.sw-footer__brand b { color: var(--fg); font-weight: 700; }\r\n.sw-footer__copy { font-size: 12.5px; color: var(--fg-subtle); letter-spacing: 0.05em; }\r\n\r\n/* --------------------------------------------------------------- content -- */\r\n.sw-main {\r\n  flex: 1 1 auto;\r\n  padding: 24px 34px 26px;\r\n  display: grid;\r\n  gap: 22px;\r\n  position: relative; z-index: 1;\r\n  min-height: 0;\r\n}\r\n\r\n/* ---- card ---- */\r\n.sw-card {\r\n  background: linear-gradient(180deg, var(--surface), color-mix(in srgb, var(--surface) 88%, #000));\r\n  border: 1.5px solid var(--border);\r\n  border-radius: var(--radius);\r\n  box-shadow: var(--shadow);\r\n  display: flex; flex-direction: column;\r\n  min-height: 0; overflow: hidden;\r\n}\r\n.sw-card__head {\r\n  flex: 0 0 auto;\r\n  display: flex; align-items: center; justify-content: space-between; gap: 18px;\r\n  padding: 17px 24px 15px;\r\n  border-bottom: 1px solid var(--hairline);\r\n}\r\n.sw-card__head-left { display: flex; align-items: center; gap: 13px; min-width: 0; }\r\n.sw-card__head-right { display: flex; align-items: baseline; gap: 16px; flex: 0 0 auto; text-align: right; }\r\n.sw-card__accent { width: 4px; height: 18px; border-radius: 3px; background: var(--fg-faint); flex: 0 0 auto; }\r\n.sw-card__title { font-size: 15.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }\r\n.sw-card__sub { font-size: 14px; font-weight: 500; color: var(--fg-subtle); letter-spacing: 0.04em; white-space: nowrap; }\r\n.sw-card__meta { font-size: 13px; color: var(--fg-faint); text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; white-space: nowrap; }\r\n.sw-card__body { flex: 1 1 auto; padding: 10px 24px 18px; min-height: 0; overflow: hidden; }\r\n.sw-card__body.pad { padding: 20px 24px; }\r\n.sw-card__body.nopad { padding: 0; }\r\n\r\n/* accent colour helpers */\r\n.acc-green  .sw-card__accent, .sw-card__accent.acc-green  { background: var(--green);  box-shadow:0 0 10px color-mix(in srgb,var(--green) 60%, transparent); }\r\n.acc-yellow .sw-card__accent, .sw-card__accent.acc-yellow { background: var(--yellow); box-shadow:0 0 10px color-mix(in srgb,var(--yellow) 60%, transparent); }\r\n.acc-orange .sw-card__accent, .sw-card__accent.acc-orange { background: var(--orange); box-shadow:0 0 10px color-mix(in srgb,var(--orange) 60%, transparent); }\r\n.acc-red    .sw-card__accent, .sw-card__accent.acc-red    { background: var(--red);    box-shadow:0 0 10px color-mix(in srgb,var(--red) 60%, transparent); }\r\n.acc-blue   .sw-card__accent, .sw-card__accent.acc-blue   { background: var(--blue);   box-shadow:0 0 10px color-mix(in srgb,var(--blue) 60%, transparent); }\r\n.acc-cyan   .sw-card__accent, .sw-card__accent.acc-cyan   { background: var(--cyan);   box-shadow:0 0 10px color-mix(in srgb,var(--cyan) 60%, transparent); }\r\n.acc-violet .sw-card__accent, .sw-card__accent.acc-violet { background: var(--violet); box-shadow:0 0 10px color-mix(in srgb,var(--violet) 60%, transparent); }\r\n\r\n/* ---- table ---- */\r\n.sw-table { width: 100%; border-collapse: collapse; font-size: 17px; }\r\n.sw-table thead th {\r\n  text-align: left; font-weight: 600; color: var(--fg-faint);\r\n  font-size: 13px; letter-spacing: 0.11em; text-transform: uppercase;\r\n  padding: 11px 14px; border-bottom: 1px solid var(--border);\r\n  white-space: nowrap;\r\n}\r\n.sw-table tbody td {\r\n  padding: 16px 16px; border-bottom: 1px solid var(--hairline);\r\n  color: var(--fg-muted); vertical-align: middle;\r\n}\r\n.sw-table.roomy tbody td { padding: 21px 16px; }\r\n.sw-table.compact { font-size: 15px; }\r\n.sw-table.compact thead th { padding: 9px 11px; font-size: 12px; letter-spacing: 0.09em; }\r\n.sw-table.compact tbody td { padding: 11px 11px; }\r\n.sw-table tbody tr:last-child td { border-bottom: none; }\r\n.sw-table tbody tr:nth-child(even) td { background: rgba(255,255,255,0.012); }\r\n.sw-table .num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); color: var(--fg); }\r\n.sw-table .strong { color: var(--fg); font-weight: 600; }\r\n.sw-table .muted { color: var(--fg-subtle); }\r\n.sw-table .mono { font-family: var(--mono); font-size: 15.5px; }\r\n/* auto-scroll feed (05 map): the column header is a SEPARATE element above the clipped scroll\r\n   area (not a table header), so scrolling rows are physically clipped below it and can never leak\r\n   into it. Header + rows share the same grid column template (set inline per wall). */\r\n.sw-feed-head {\r\n  display: grid; align-items: center; column-gap: 16px;\r\n  flex: 0 0 auto; padding: 11px 14px 10px; border-bottom: 1px solid var(--border);\r\n  font-size: 13px; font-weight: 600; letter-spacing: 0.11em; text-transform: uppercase;\r\n  color: var(--fg-faint); white-space: nowrap;\r\n}\r\n.sw-feed-row {\r\n  display: grid; align-items: center; column-gap: 16px;\r\n  padding: 15px 14px; border-bottom: 1px solid var(--hairline);\r\n  color: var(--fg-muted); font-size: 17px;\r\n}\r\n.sw-feed-row .strong { color: var(--fg); font-weight: 600; }\r\n.sw-feed-row .muted { color: var(--fg-subtle); }\r\n.sw-feed-row .mono { font-family: var(--mono); }\r\n.sw-rank { color: var(--fg-faint); font-family: var(--mono); font-weight:600; }\r\n\r\n/* ---- badge ---- */\r\n.sw-badge {\r\n  --c: var(--fg-subtle);\r\n  display: inline-flex; align-items: center; gap: 7px;\r\n  padding: 4px 11px; border-radius: 999px;\r\n  font-size: 14px; font-weight: 600; letter-spacing: 0.04em;\r\n  background: color-mix(in srgb, var(--c) 15%, transparent);\r\n  border: 1px solid color-mix(in srgb, var(--c) 36%, transparent);\r\n  color: color-mix(in srgb, var(--c) 62%, white);\r\n  white-space: nowrap; line-height: 1.3;\r\n}\r\n.sw-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c); }\r\n.sw-badge.solid { background: var(--c); color: #0a0a0a; border-color: transparent; font-weight: 700; }\r\n.sw-badge.is-critical { --c: var(--sev-critical); }\r\n.sw-badge.is-high     { --c: var(--sev-high); }\r\n.sw-badge.is-medium   { --c: var(--sev-medium); }\r\n.sw-badge.is-low      { --c: var(--sev-low); }\r\n.sw-badge.is-info     { --c: var(--sev-info); }\r\n.sw-badge.is-none, .sw-badge.is-t1 { --c: var(--t1); }\r\n.sw-badge.is-sbear, .sw-badge.is-t2 { --c: var(--t2); }\r\n.sw-badge.is-tear,  .sw-badge.is-t3 { --c: var(--t3); }\r\n.sw-badge.is-tevr,  .sw-badge.is-t4 { --c: var(--t4); }\r\n.sw-badge.is-open    { --c: var(--blue); }\r\n.sw-badge.is-ok      { --c: var(--green); }\r\n.sw-badge.is-down    { --c: var(--red); }\r\n.sw-badge.is-warn    { --c: var(--yellow); }\r\n.sw-badge.is-breach  { --c: var(--red); }\r\n\r\n/* ---- kpi ---- */\r\n.sw-kpi {\r\n  --c: var(--fg-muted);\r\n  position: relative;\r\n  background: linear-gradient(180deg, var(--surface), color-mix(in srgb,var(--surface) 86%, #000));\r\n  border: 1.5px solid var(--border);\r\n  border-radius: var(--radius);\r\n  padding: 19px 22px 18px;\r\n  display: flex; flex-direction: column; gap: 5px;\r\n  overflow: hidden;\r\n}\r\n.sw-kpi::before { content:\"\"; position:absolute; left:0; top:0; bottom:0; width:4px; background: var(--c); box-shadow: 0 0 16px color-mix(in srgb, var(--c) 55%, transparent); }\r\n.sw-kpi::after { content:\"\"; position:absolute; right:-30px; top:-30px; width:130px; height:130px; border-radius:50%; background: radial-gradient(circle, color-mix(in srgb,var(--c) 16%, transparent), transparent 70%); }\r\n.sw-kpi__label { font-size: 13.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg-subtle); }\r\n.sw-kpi__value { font-size: 58px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--fg); }\r\n.sw-kpi__value.tint { color: color-mix(in srgb, var(--c) 72%, white); }\r\n.sw-kpi__foot { font-size: 14px; color: var(--fg-faint); font-weight: 500; }\r\n.sw-kpi.c-red    { --c: var(--red); }\r\n.sw-kpi.c-orange { --c: var(--orange); }\r\n.sw-kpi.c-yellow { --c: var(--yellow); }\r\n.sw-kpi.c-green  { --c: var(--green); }\r\n.sw-kpi.c-blue   { --c: var(--blue); }\r\n.sw-kpi.c-violet { --c: var(--violet); }\r\n\r\n/* ---- trend / metric ---- */\r\n.sw-metric { display:flex; flex-direction:column; gap:12px; padding: 19px 22px; background: var(--surface-2); border:1.5px solid var(--border); border-radius: var(--radius-sm); }\r\n.sw-metric__label { font-size:14px; color: var(--fg-subtle); font-weight:600; letter-spacing:0.1em; text-transform:uppercase; }\r\n.sw-metric__row { display:flex; align-items:baseline; gap:10px; }\r\n.sw-metric__delta { font-size:42px; font-weight:700; letter-spacing:-0.02em; font-variant-numeric:tabular-nums; display:flex; align-items:center; gap:8px; }\r\n.sw-metric__delta.up { color: var(--green); }\r\n.sw-metric__delta.down { color: var(--red); }\r\n.sw-metric__arrow { font-size:26px; }\r\n.sw-metric__sub { font-size:14px; color: var(--fg-faint); font-family: var(--mono); }\r\n\r\n/* ---- stat bars (level counters) ---- */\r\n.sw-bars { display:flex; flex-direction:column; gap:10px; }\r\n.sw-bar { --c: var(--fg-subtle); position:relative; display:flex; align-items:center; justify-content:space-between;\r\n  height: 56px; padding: 0 19px; border-radius: var(--radius-sm); overflow:hidden;\r\n  background: color-mix(in srgb, var(--c) 12%, var(--surface-2));\r\n  border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);\r\n}\r\n.sw-bar__fill { position:absolute; left:0; top:0; bottom:0; background: color-mix(in srgb, var(--c) 26%, transparent); border-right:2px solid var(--c); }\r\n.sw-bar__name { position:relative; font-size:16px; font-weight:600; letter-spacing:0.05em; color: color-mix(in srgb, var(--c) 55%, white); display:flex; align-items:center; gap:11px; }\r\n.sw-bar__dot { width:11px;height:11px;border-radius:50%; background:var(--c); box-shadow:0 0 10px var(--c); }\r\n.sw-bar__val { position:relative; font-size:22px; font-weight:700; font-variant-numeric:tabular-nums; font-family:var(--mono); color: var(--fg); }\r\n.sw-bar.t1 { --c: var(--t1); } .sw-bar.t2 { --c: var(--t2); } .sw-bar.t3 { --c: var(--t3); } .sw-bar.t4 { --c: var(--t4); }\r\n.sw-bar.t5 { --c: #71717a; }\r\n\r\n/* ---- generic helpers ---- */\r\n.sw-eyebrow { font-size:13px; font-weight:600; letter-spacing:0.14em; text-transform:uppercase; color: var(--fg-faint); }\r\n.sw-big { font-size:66px; font-weight:800; letter-spacing:-0.03em; line-height:1; }\r\n.sw-muted { color: var(--fg-muted); }\r\n.sw-subtle { color: var(--fg-subtle); }\r\n.flex { display:flex; } .col{flex-direction:column;} .center{align-items:center;justify-content:center;}\r\n.gap-s{gap:10px;} .gap-m{gap:16px;} .gap-l{gap:22px;}\r\n.grow{flex:1 1 auto;} .between{justify-content:space-between;}\r\n\r\n/* ---- horizontal bar list (mini bar chart) ---- */\r\n.sw-hbars { display:flex; flex-direction:column; gap:0; height:100%; justify-content:space-around; padding:4px 2px; }\r\n.sw-hbar { display:flex; flex-direction:column; gap:9px; }\r\n.sw-hbar__top { display:flex; justify-content:space-between; align-items:baseline; gap:12px; }\r\n.sw-hbar__name { font-size:16.5px; font-weight:600; color:var(--fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }\r\n.sw-hbar__val { font-size:16px; font-weight:700; font-family:var(--mono); color:var(--fg-muted); flex:0 0 auto; }\r\n.sw-hbar__track { height:14px; border-radius:7px; background:var(--surface-3); overflow:hidden; border:1px solid var(--border); }\r\n.sw-hbar__fill { height:100%; border-radius:6px; box-shadow:0 0 10px -2px currentColor; transition:width 1s ease; }\r\n\r\n/* ---- stacked posture bar ---- */\r\n.sw-stack { display:flex; height:32px; border-radius:8px; overflow:hidden; border:1px solid var(--border); }\r\n.sw-stack > div { height:100%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#0a0a0a; }\r\n.sw-legend { display:flex; gap:20px; margin-top:16px; flex-wrap:wrap; }\r\n.sw-legend > div { display:flex; align-items:center; gap:9px; font-size:14.5px; color:var(--fg-muted); }\r\n.sw-legend i { width:12px; height:12px; border-radius:3px; display:inline-block; }\r\n\r\n@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.35;} }\r\n@keyframes countup { from { opacity:0; } to { opacity:1; } }\r\n@keyframes sweep { to { transform: rotate(360deg); } }\r\n@keyframes dash { to { stroke-dashoffset: 0; } }\r\n@keyframes arcflow { to { stroke-dashoffset: -1000; } }\r\n@keyframes blip { 0%{transform:scale(0.2);opacity:0.9;} 100%{transform:scale(2.4);opacity:0;} }\r\n\r\n/* ----------------------------------------------------- loading / skeleton -- */\r\n/* Slow, low-contrast shimmer — safe for an always-on 24/7 video wall. */\r\n@keyframes sw-shimmer { 100% { transform: translateX(100%); } }\r\n.sw-skel {\r\n  position: relative; overflow: hidden;\r\n  background: var(--surface-2);\r\n  border-radius: var(--radius-xs);\r\n}\r\n.sw-skel::after {\r\n  content: \"\"; position: absolute; inset: 0; transform: translateX(-100%);\r\n  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06) 50%, transparent);\r\n  animation: sw-shimmer 1.6s ease-in-out infinite;\r\n}\r\n.sw-skel-ring { position: absolute; border: 2px solid var(--border); border-radius: 50%; }\r\n/* card chrome stays crisp while the body shimmers; a hair dimmer signals \"not live yet\" */\r\n.sw-skel-card .sw-card__title { opacity: 0.78; }\r\n\r\n/* ring spinner — reuses the sweep keyframe (refresh indicator / inline fallback) */\r\n.sw-spin { animation: sweep 0.9s linear infinite; transform-origin: center; }\r\n\r\n/* topbar \"refreshing\" indicator — subtle, no layout shift, never a full skeleton */\r\n.sw-refreshing { display: inline-flex; align-items: center; gap: 8px; color: var(--fg-subtle); font-size: 12px; letter-spacing: 0.04em; }\r\n.sw-stale { color: color-mix(in srgb, var(--yellow) 70%, white) !important; }\r\n";
 
 /* ===== world-dots basemap                                              ===== */
 
@@ -193,11 +193,20 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     requestAnimationFrame(step);
   }
 
+  /* ----- original-wall branding/copyright footer (shown on every wall) ------ */
+  function footer() {
+    let year = 2026;
+    try { year = new Date().getFullYear(); } catch (e) {}
+    return h('footer', { class: 'sw-footer' },
+      h('span', { class: 'sw-footer__brand' }, 'SKYWATCH ', h('b', null, 'by'), ' GLESEC'),
+      h('span', { class: 'sw-footer__copy' }, 'Copyright © ' + year + ' GLESEC. All rights reserved.'));
+  }
+
   /* ----- mount helper: build the page shell --------------------------------- */
   function shell(topbarOpts, mainStyle) {
     const main = h('main', { class: 'sw-main' });
     if (mainStyle) Object.assign(main.style, mainStyle);
-    const r = h('div', { class: 'sw-root' }, topbar(topbarOpts), main);
+    const r = h('div', { class: 'sw-root' }, topbar(topbarOpts), main, footer());
     r._main = main;
     return r;
   }
@@ -525,11 +534,11 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     doms.forEach((dm, i) => {
       const [lx, ly] = pt(i, maxR + 30);
       const a = ang(i); const anchor = Math.abs(Math.cos(a)) < 0.3 ? 'middle' : (Math.cos(a) > 0 ? 'start' : 'end');
-      const lab = svg('text', { x: lx, y: ly, 'text-anchor': anchor, 'dominant-baseline': 'middle', fill: 'var(--fg-muted)', 'font-size': 13, 'font-weight': 600, 'letter-spacing': '0.06em', 'font-family': 'Inter' });
+      const lab = svg('text', { x: lx, y: ly, 'text-anchor': anchor, 'dominant-baseline': 'middle', fill: 'var(--fg-muted)', 'font-size': 16, 'font-weight': 600, 'letter-spacing': '0.06em', 'font-family': 'Inter' });
       lab.textContent = dm.name;
       g.appendChild(lab);
       const noData = dm.hasData === false;
-      const val = svg('text', { x: lx, y: ly + 16, 'text-anchor': anchor, 'dominant-baseline': 'middle', fill: noData ? 'var(--fg-faint)' : gradeHex(dm.score), 'font-size': 12, 'font-weight': 700, 'font-family': 'JetBrains Mono' });
+      const val = svg('text', { x: lx, y: ly + 20, 'text-anchor': anchor, 'dominant-baseline': 'middle', fill: noData ? 'var(--fg-faint)' : gradeHex(dm.score), 'font-size': 15, 'font-weight': 700, 'font-family': 'JetBrains Mono' });
       val.textContent = noData ? 'n/a' : dm.score;
       g.appendChild(val);
     });
@@ -539,10 +548,10 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     // composite risk = mean of domains that actually returned data (no-data sectors excluded, not counted as 0)
     const active = doms.filter(x => x.hasData !== false && x.score > 0).map(x => x.score);
     const composite = active.length ? Math.round(active.reduce((a, b) => a + b, 0) / active.length) : 0;
-    const ct = svg('text', { x: c, y: c - 3, 'text-anchor': 'middle', 'dominant-baseline': 'middle', fill: '#fff', 'font-size': 35, 'font-weight': 800, 'font-family': 'Inter', 'letter-spacing': '-0.03em' });
+    const ct = svg('text', { x: c, y: c - 4, 'text-anchor': 'middle', 'dominant-baseline': 'middle', fill: '#fff', 'font-size': 46, 'font-weight': 800, 'font-family': 'Inter', 'letter-spacing': '-0.03em' });
     ct.textContent = composite + '%';
     g.appendChild(ct);
-    const cl = svg('text', { x: c, y: c + 21, 'text-anchor': 'middle', fill: 'var(--fg-subtle)', 'font-size': 8.4, 'font-weight': 600, 'letter-spacing': '0.08em', 'font-family': 'Inter' });
+    const cl = svg('text', { x: c, y: c + 26, 'text-anchor': 'middle', fill: 'var(--fg-subtle)', 'font-size': 10.5, 'font-weight': 600, 'letter-spacing': '0.08em', 'font-family': 'Inter' });
     cl.textContent = 'COMPOSITE RISK';
     g.appendChild(cl);
 
@@ -583,12 +592,13 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     });
     sweepEl.appendChild(leadLine);
     g.style.position = 'relative'; g.style.zIndex = '1';
-    // scale the whole radar (svg + sweep) up 15% as one unit — keeps every proportion intact
+    // scale the whole radar (svg + sweep) up as one unit — keeps every proportion intact.
+    // Larger now that the side columns are wider and the wall is tuned for far-away viewing.
     const inner = h('div', {
       style: {
         position: 'relative', width: S + 'px', height: S + 'px',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transform: 'scale(1.15)', transformOrigin: 'center center'
+        transform: 'scale(1.2)', transformOrigin: 'center center'
       }
     });
     inner.appendChild(sweepEl); inner.appendChild(g);
@@ -618,7 +628,7 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     const cStatus = cActive.length ? { tone: cTone, label: 'Risk ' + composite } : { loading: true, label: 'No Data' };
     const root = shell({ title: 'CSA Monitor Wall · Security', sub: 'Cybersecurity Situational Awareness', account: d.account, status: cStatus });
     const main = root._main;
-    main.style.gridTemplateColumns = '380px 1fr 380px';
+    main.style.gridTemplateColumns = '410px 1fr 410px';
     main.style.gridTemplateRows = '1fr';
 
     /* LEFT */
@@ -629,15 +639,15 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     const tMix = p => `color-mix(in srgb, ${tHex} ${p}%, white)`;
     const gradeAccent = s => s >= 75 ? 'red' : s >= 50 ? 'orange' : s >= 25 ? 'yellow' : 'green';
     const heroNum = h('div');
-    heroNum.style.cssText = `flex:0 0 auto;font-family:Inter;font-size:50px;font-weight:800;line-height:0.9;background:linear-gradient(180deg,${tMix(85)},${tHex});-webkit-background-clip:text;background-clip:text;color:transparent;`;
+    heroNum.style.cssText = `flex:0 0 auto;font-family:Inter;font-size:68px;font-weight:800;line-height:0.9;background:linear-gradient(180deg,${tMix(85)},${tHex});-webkit-background-clip:text;background-clip:text;color:transparent;`;
     heroNum.textContent = tHas ? td.score : '—';
     const topCard = card({ title: 'Top Risk Domain', accent: tHas ? gradeAccent(td.score) : undefined },
-      h('div', { class: 'flex', style: { alignItems: 'center', gap: '18px' } },
+      h('div', { class: 'flex', style: { alignItems: 'center', gap: '20px' } },
         heroNum,
-        h('div', { style: { minWidth: '0', borderLeft: '1px solid var(--border)', paddingLeft: '18px' } },
-          h('div', { style: { fontSize: '22px', fontWeight: '800', color: tMix(72) } }, td.name),
-          h('div', { style: { fontSize: '12.5px', color: 'var(--fg-subtle)', marginTop: '6px' } }, td.service),
-          h('div', { style: { fontSize: '12.5px', color: tMix(55), marginTop: '3px', lineHeight: '1.25' } }, td.reason))));
+        h('div', { style: { minWidth: '0', borderLeft: '1px solid var(--border)', paddingLeft: '20px' } },
+          h('div', { style: { fontSize: '27px', fontWeight: '800', color: tMix(72) } }, td.name),
+          h('div', { style: { fontSize: '15px', color: 'var(--fg-subtle)', marginTop: '7px' } }, td.service),
+          h('div', { style: { fontSize: '15px', color: tMix(55), marginTop: '4px', lineHeight: '1.25' } }, td.reason))));
 
     // Posture trend from real trajectory counts (improving / stable / worsening domains). No fabricated sparkline.
     // Posture Trend — Inline row (gallery-csa-posture option 8); arrow sits to the right of the status
@@ -646,13 +656,13 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     const trendCard = card({ title: 'Posture Trend', sub: 'Domain trajectory', accent: 'cyan' },
       h('div', { class: 'flex between', style: { alignItems: 'center', gap: '12px', height: '100%', padding: '8px 0' } },
         h('div', { style: { flex: '0 0 auto' } },
-          h('div', { style: { fontSize: '20px', fontWeight: '800', color: 'var(--cyan)', whiteSpace: 'nowrap' } }, d.trajectory + ' ' + trajIcon),
-          h('div', { class: 'sw-eyebrow', style: { marginTop: '4px' } }, 'Trajectory')),
-        h('div', { class: 'flex', style: { gap: '12px' } },
+          h('div', { style: { fontSize: '25px', fontWeight: '800', color: 'var(--cyan)', whiteSpace: 'nowrap' } }, d.trajectory + ' ' + trajIcon),
+          h('div', { class: 'sw-eyebrow', style: { marginTop: '5px' } }, 'Trajectory')),
+        h('div', { class: 'flex', style: { gap: '16px' } },
           ...[['Improving', tc.improving, 'var(--green)'], ['Stable', tc.stable, 'var(--fg-subtle)'], ['Worsening', tc.worsening, 'var(--red)']]
             .map(([l, v, col]) => h('div', { style: { textAlign: 'center' } },
-              h('div', { style: { fontFamily: 'var(--mono)', fontSize: '20px', fontWeight: '700', color: col } }, v),
-              h('div', { style: { fontSize: '9px', color: 'var(--fg-faint)', textTransform: 'uppercase', letterSpacing: '0.04em' } }, l))))));
+              h('div', { style: { fontFamily: 'var(--mono)', fontSize: '25px', fontWeight: '700', color: col } }, v),
+              h('div', { style: { fontSize: '11px', color: 'var(--fg-faint)', textTransform: 'uppercase', letterSpacing: '0.04em' } }, l))))));
 
     // Domain Risk Index (real per-domain risk, 0..100; no-data sectors shown as n/a)
     const domBars = [...d.domains].sort((a, b) => b.score - a.score).map(dm => {
@@ -661,7 +671,7 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
         h('div', { class: 'sw-hbar__top' },
           h('span', { class: 'sw-hbar__name', style: noData ? { color: 'var(--fg-faint)' } : null }, dm.name),
           h('span', { class: 'sw-hbar__val', style: { color: noData ? 'var(--fg-faint)' : gradeColor(dm.score) } }, noData ? 'n/a' : dm.score)),
-        h('div', { class: 'sw-hbar__track', style: { height: '8.8px' } }, h('div', { class: 'sw-hbar__fill', style: { width: (noData ? 0 : dm.score) + '%', background: gradeColor(dm.score), color: gradeColor(dm.score) } })));
+        h('div', { class: 'sw-hbar__track', style: { height: '13px' } }, h('div', { class: 'sw-hbar__fill', style: { width: (noData ? 0 : dm.score) + '%', background: gradeColor(dm.score), color: gradeColor(dm.score) } })));
     });
     const domainCard = card({ title: 'Domain Risk Index', sub: 'All 7 sectors', accent: 'orange', class: 'grow' }, h('div', { class: 'sw-hbars' }, ...domBars));
 
@@ -673,14 +683,14 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     /* RIGHT — contributing conditions (real; ~5 now, capped at 10) — Severity dots (gallery-csa-conditions option 4) */
     const conds = d.conditions.slice(0, 10);
     const sevHex = sevColor;   // canonical severity colour (low=yellow, med=orange, high=red, crit=pink/red)
-    const condRows = conds.map((cd, i) => h('div', { class: 'flex', style: { alignItems: 'center', gap: '13px', padding: '11px 2px', borderTop: i ? '1px solid var(--hairline)' : 'none' } },
-      h('span', { style: { width: '10px', height: '10px', borderRadius: '50%', flex: '0 0 auto', background: sevHex(cd.severity), boxShadow: `0 0 8px color-mix(in srgb, ${sevHex(cd.severity)} 50%, transparent)` } }),
+    const condRows = conds.map((cd, i) => h('div', { class: 'flex', style: { alignItems: 'center', gap: '15px', padding: '15px 2px', borderTop: i ? '1px solid var(--hairline)' : 'none' } },
+      h('span', { style: { width: '12px', height: '12px', borderRadius: '50%', flex: '0 0 auto', background: sevHex(cd.severity), boxShadow: `0 0 8px color-mix(in srgb, ${sevHex(cd.severity)} 50%, transparent)` } }),
       h('div', { style: { flex: '1', minWidth: '0' } },
-        h('div', { style: { fontSize: '13px', fontWeight: '600', color: 'var(--fg)' } }, cd.reason),
-        h('div', { style: { fontSize: '11px', color: 'var(--fg-faint)' } }, cd.domain + ' · ' + cd.service)),
-      h('span', { style: { fontFamily: 'var(--mono)', fontSize: '17px', fontWeight: '700', color: gradeColor(cd.risk) } }, cd.risk)));
-    const condCard = card({ title: 'Contributing Conditions', meta: conds.length + ' active', accent: 'orange', bodyClass: 'nopad' },
-      h('div', { style: { padding: '4px 16px' } }, ...condRows));
+        h('div', { style: { fontSize: '16.5px', fontWeight: '600', color: 'var(--fg)' } }, cd.reason),
+        h('div', { style: { fontSize: '13px', color: 'var(--fg-faint)', marginTop: '2px' } }, cd.domain + ' · ' + cd.service)),
+      h('span', { style: { fontFamily: 'var(--mono)', fontSize: '22px', fontWeight: '700', color: gradeColor(cd.risk) } }, cd.risk)));
+    const condCard = card({ title: 'Contributing Conditions', accent: 'orange', bodyClass: 'nopad' },
+      h('div', { style: { padding: '4px 18px' } }, ...condRows));
 
     // Threat level from /radar-wall/csa-threat-level (max_threat_level + active_count + label).
     // If the endpoint returns no level, show UNKNOWN (neutral) rather than a misleading default.
@@ -692,21 +702,21 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     const tCases = (t.cases != null && t.cases !== '') ? t.cases : '—';
     const tAccent = known ? { 1: 'green', 2: 'yellow', 3: 'orange', 4: 'red', 5: 'violet' }[t.tier] : null;
     const threatCard = card({ title: 'Threat Level', accent: tAccent, class: 'grow' },
-      h('div', { class: 'flex col center', style: { height: '100%', gap: '16px', justifyContent: 'center' } },
+      h('div', { class: 'flex col', style: { height: '100%', gap: '20px', justifyContent: 'space-evenly', padding: '8px 0' } },
         h('div', {
           style: {
-            width: '100%', padding: '20px', borderRadius: '12px', textAlign: 'center',
-            background: `radial-gradient(circle at 50% 0%, color-mix(in srgb,${tcol} 12%, transparent), transparent 70%), var(--surface-2)`,
-            border: `1px solid color-mix(in srgb,${tcol} 34%, transparent)`, boxShadow: `inset 0 0 24px color-mix(in srgb,${tcol} 8%, transparent)`
+            width: '100%', padding: '32px 24px', borderRadius: '14px', textAlign: 'center',
+            background: `radial-gradient(circle at 50% 0%, color-mix(in srgb,${tcol} 14%, transparent), transparent 70%), var(--surface-2)`,
+            border: `1px solid color-mix(in srgb,${tcol} 34%, transparent)`, boxShadow: `inset 0 0 32px color-mix(in srgb,${tcol} 9%, transparent)`
           }
         },
-          h('div', { class: 'sw-eyebrow', style: { color: `color-mix(in srgb,${tcol} 65%, white)` } }, 'Current Threat Level'),
-          h('div', { style: { fontSize: '34px', fontWeight: '800', marginTop: '8px', color: `color-mix(in srgb,${tcol} 72%, white)` } }, tLabel),
-          h('div', { style: { fontSize: '16px', color: 'var(--fg-muted)', fontWeight: '600', letterSpacing: '0.1em' } }, tCode)),
-        h('div', { class: 'flex between', style: { width: '100%', padding: '0 6px', alignItems: 'baseline' } },
-          h('span', { class: 'sw-eyebrow' }, 'Active Threats'),
-          h('span', { style: { fontSize: '40px', fontWeight: '800', fontFamily: 'JetBrains Mono', color: 'var(--fg)' } }, tCases),
-          h('span', { class: 'sw-subtle', style: { fontSize: '13px' } }, 'cases'))));
+          h('div', { class: 'sw-eyebrow', style: { fontSize: '15px', color: `color-mix(in srgb,${tcol} 65%, white)` } }, 'Current Threat Level'),
+          h('div', { style: { fontSize: '60px', fontWeight: '800', lineHeight: '1.02', marginTop: '12px', color: `color-mix(in srgb,${tcol} 74%, white)` } }, tLabel),
+          h('div', { style: { fontSize: '22px', marginTop: '6px', color: 'var(--fg-muted)', fontWeight: '700', letterSpacing: '0.12em' } }, tCode)),
+        h('div', { class: 'flex between', style: { width: '100%', padding: '0 10px', alignItems: 'baseline' } },
+          h('span', { class: 'sw-eyebrow', style: { fontSize: '14px' } }, 'Active Threats'),
+          h('span', { style: { fontSize: '76px', fontWeight: '800', fontFamily: 'JetBrains Mono', lineHeight: '1', color: 'var(--fg)' } }, tCases),
+          h('span', { class: 'sw-subtle', style: { fontSize: '16px' } }, 'cases'))));
 
     const rightCol = h('div', { class: 'flex col gap-m', style: { minHeight: '0' } }, condCard, threatCard);
 
@@ -718,7 +728,7 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
   // until the first batch lands. Accents that are data-driven (hero/threat) stay neutral.
   const skel = {
     topbar: { title: 'CSA Monitor Wall · Security', sub: 'Cybersecurity Situational Awareness', status: { loading: true } },
-    columns: '340px 1fr 380px', rows: '1fr',
+    columns: '410px 1fr 410px', rows: '1fr',
     cols: [
       [ { title: 'Top Risk Domain', archetype: 'hero' },
         { title: 'Posture Trend', sub: 'Domain trajectory', accent: 'cyan', archetype: 'inline' },
@@ -894,8 +904,9 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     main.style.gridTemplateColumns = '1.5fr 1fr';
     main.style.gridTemplateRows = '1fr';
 
-    /* ---- LEFT: Top 10 GNE ---- */
-    const rows = d.topGne.map(g => h('tr', null,
+    /* ---- LEFT: Top GNE (trimmed for far-wall legibility — biggest movers only) ---- */
+    const TOP_N = 6;
+    const rows = d.topGne.slice(0, TOP_N).map(g => h('tr', null,
       h('td', { class: 'sw-rank' }, g.gne),
       h('td', { class: 'strong' }, g.name),
       h('td', { class: 'num' }, SW.fmt(g.c24)),
@@ -903,18 +914,18 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
       h('td', null, badge(g.priority, prioCls(g.priority))),
       h('td', { class: 'num' }, SW.fmt(g.created)),
     ));
-    const table = h('table', { class: 'sw-table roomy' },
+    const table = h('table', { class: 'sw-table' },
       h('thead', null, h('tr', null,
         h('th', null, 'GNE'), h('th', null, 'Notable Event'),
         h('th', { class: 'num' }, '24h'), h('th', { class: 'num' }, '7d'),
         h('th', null, 'Priority'), h('th', { class: 'num' }, 'Cases'))),
       h('tbody', null, ...rows));
-    const gneTable = card({ title: 'Top 10 GNE Types', sub: 'Last 24 hours', accent: 'cyan', meta: d.topGne.length + ' active', bodyClass: 'nopad' }, h('div', { style: { padding: '4px 8px' } }, table));
+    const gneTable = card({ title: 'Top GNE Types', sub: 'Last 24 hours', accent: 'cyan', meta: d.topGne.length + ' active', bodyClass: 'nopad' }, h('div', { style: { padding: '4px 8px' } }, table));
 
-    // 24h volume bar chart (fills remaining vertical space)
+    // 24h volume bar chart (fills remaining vertical space) — same trimmed set
     const maxV = Math.max(...d.topGne.map(g => g.c24));
     const barCol = sevColor;   // canonical severity colour
-    const volBars = [...d.topGne].sort((a, b) => b.c24 - a.c24).map(g => h('div', { class: 'sw-hbar' },
+    const volBars = [...d.topGne].sort((a, b) => b.c24 - a.c24).slice(0, TOP_N).map(g => h('div', { class: 'sw-hbar' },
       h('div', { class: 'sw-hbar__top' },
         h('span', { class: 'sw-hbar__name' }, h('span', { class: 'sw-rank', style: { marginRight: '8px' } }, g.gne), g.name),
         h('span', { class: 'sw-hbar__val' }, SW.fmt(g.c24))),
@@ -1071,41 +1082,42 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
 
     /* ---- HERO BANNER (v2 option 1 — Semicircle arc) ---- */
     const col = cur.col;
-    const cx = 74, cy = 70, r = 56, f = d.level / 5;
+    const cx = 94, cy = 88, r = 72, f = d.level / 5;
     const pol = (a) => [cx + r * Math.cos(a), cy - r * Math.sin(a)];
     const [sx, sy] = pol(Math.PI), [ex, ey] = pol(0), [vx, vy] = pol(Math.PI * (1 - f));
-    const gauge = `<svg width="150" height="88" viewBox="0 0 150 88"><path d="M${sx} ${sy} A ${r} ${r} 0 0 1 ${ex} ${ey}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="12" stroke-linecap="round"/><path d="M${sx} ${sy} A ${r} ${r} 0 0 1 ${vx.toFixed(1)} ${vy.toFixed(1)}" fill="none" stroke="${col}" stroke-width="12" stroke-linecap="round" style="filter:drop-shadow(0 0 5px ${col})"/><text x="${cx}" y="64" text-anchor="middle" font-family="Inter" font-size="34" font-weight="800" fill="color-mix(in srgb, ${col} 78%, white)">${d.level}</text><text x="${cx}" y="80" text-anchor="middle" font-family="Inter" font-size="9" font-weight="700" letter-spacing="1" fill="var(--fg-subtle)">OF 5</text></svg>`;
+    const gauge = `<svg width="190" height="112" viewBox="0 0 190 112"><path d="M${sx} ${sy} A ${r} ${r} 0 0 1 ${ex} ${ey}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="15" stroke-linecap="round"/><path d="M${sx} ${sy} A ${r} ${r} 0 0 1 ${vx.toFixed(1)} ${vy.toFixed(1)}" fill="none" stroke="${col}" stroke-width="15" stroke-linecap="round" style="filter:drop-shadow(0 0 6px ${col})"/><text x="${cx}" y="82" text-anchor="middle" font-family="Inter" font-size="46" font-weight="800" fill="color-mix(in srgb, ${col} 78%, white)">${d.level}</text><text x="${cx}" y="102" text-anchor="middle" font-family="Inter" font-size="11" font-weight="700" letter-spacing="1" fill="var(--fg-subtle)">OF 5</text></svg>`;
     // factual sub-line from real per-level case counts (replaces the fabricated tagline)
     const activeAtLevel = (d.counts && d.counts[d.level]) || 0;
     const levelSub = SW.fmt(activeAtLevel) + ' active TAC case' + (activeAtLevel === 1 ? '' : 's') + ' at this level';
-    const txt = `<div style="padding-left:24px;flex:1;min-width:0;">
-      <div class="sw-eyebrow" style="color:color-mix(in srgb, ${col} 60%, white);">Active Threat Condition</div>
-      <div style="font-size:28px;font-weight:800;letter-spacing:-0.01em;line-height:1.05;margin-top:4px;">LEVEL ${d.level} · <span style="color:color-mix(in srgb, ${col} 72%, white);">${d.code}</span></div>
-      <div style="font-size:13px;color:var(--fg-muted);margin-top:5px;">${levelSub}</div></div>`;
+    const txt = `<div style="padding-left:30px;flex:1;min-width:0;">
+      <div class="sw-eyebrow" style="font-size:15px;color:color-mix(in srgb, ${col} 60%, white);">Active Threat Condition</div>
+      <div style="font-size:40px;font-weight:800;letter-spacing:-0.01em;line-height:1.05;margin-top:6px;">LEVEL ${d.level} · <span style="color:color-mix(in srgb, ${col} 72%, white);">${d.code}</span></div>
+      <div style="font-size:17px;color:var(--fg-muted);margin-top:8px;">${levelSub}</div></div>`;
     const banner = h('div', {
       class: 'sw-card', style: {
-        flexDirection: 'row', alignItems: 'center', padding: '14px 22px',
+        flexDirection: 'row', alignItems: 'center', padding: '20px 28px',
         background: `linear-gradient(100deg, color-mix(in srgb, ${col} 4.5%, var(--surface)), var(--surface) 60%)`,
         borderColor: `color-mix(in srgb, ${col} 26%, transparent)`
       }
     });
     banner.innerHTML = gauge + txt;
 
-    // cases
-    const caseRows = d.cases.map(c => h('tr', null,
-      h('td', { class: 'mono', style: { color: 'var(--blue)' } }, '#' + c.id),
+    // cases — fewer rows so each reads big from across the room
+    const caseRows = d.cases.slice(0, 8).map(c => h('tr', null,
+      h('td', { class: 'mono', style: { color: 'var(--blue)', fontSize: '21px' } }, '#' + c.id),
       h('td', { class: 'strong' }, c.account),
-      h('td', null, h('span', { class: 'flex', style: { alignItems: 'center', gap: '7px', fontWeight: '600', color: `color-mix(in srgb, ${TIER[c.level].c} 62%, white)` } },
-        h('span', { style: { width: '7px', height: '7px', borderRadius: '50%', flex: '0 0 auto', background: TIER[c.level].c, boxShadow: `0 0 6px color-mix(in srgb, ${TIER[c.level].c} 70%, transparent)` } }),
+      h('td', null, h('span', { class: 'flex', style: { alignItems: 'center', gap: '9px', fontWeight: '600', color: `color-mix(in srgb, ${TIER[c.level].c} 62%, white)` } },
+        h('span', { style: { width: '9px', height: '9px', borderRadius: '50%', flex: '0 0 auto', background: TIER[c.level].c, boxShadow: `0 0 6px color-mix(in srgb, ${TIER[c.level].c} 70%, transparent)` } }),
         'L' + c.level + ' · ' + TIER[c.level].name)),
       h('td', { class: 'muted' }, c.owner),
-      h('td', { class: 'mono muted' }, ageStr(c.created)),
+      h('td', { class: 'mono muted', style: { fontSize: '21px' } }, ageStr(c.created)),
     ));
+    const shownCases = Math.min(8, d.cases.length);
     const casesCard = card({ title: 'Contributing TAC Cases', sub: 'Most recent', accent: 'blue', meta: d.cases.length + ' cases', bodyClass: 'nopad', class: 'grow' },
       h('div', { style: { padding: '2px 8px', height: '100%' } },
-        // table fills the card so rows stretch vertically; cap total height to header + rows×85px
-        // (~155% of the natural ~54px row) so rows keep their height as a floor but don't over-stretch
-        h('table', { class: 'sw-table roomy', style: { height: '100%', maxHeight: (34 + d.cases.length * 85) + 'px' } },
+        // table fills the card so rows stretch vertically; cap total height to header + rows×118px
+        // so the few rows go big (far-wall legibility) without over-stretching on sparse data
+        h('table', { class: 'sw-table roomy', style: { height: '100%', maxHeight: (40 + shownCases * 118) + 'px', fontSize: '23px' } },
           h('thead', null, h('tr', null, h('th', null, 'Case'), h('th', null, 'Account'), h('th', null, 'Threat Level'), h('th', null, 'Owner'), h('th', null, 'Age'))),
           h('tbody', null, ...caseRows))));
 
@@ -1116,15 +1128,15 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     counterBody.innerHTML = [5, 4, 3, 2, 1].map((n, i) => {
       const v = d.counts[n] || 0, t = TIERS[n - 1], c = t.col, on = v > 0;
       const w = Math.max(2, v / maxC * 100);
-      return `<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:9px 2px;${i !== 0 ? 'border-top:1px solid var(--hairline);' : ''}">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;">
-          <div style="display:flex;align-items:center;gap:9px;">
-            <span style="width:9px;height:9px;border-radius:50%;background:${c};${on ? `box-shadow:0 0 8px ${c};` : 'opacity:.4;'}"></span>
-            <span style="font-size:13px;font-weight:600;color:${on ? cmix(c, 55) : 'var(--fg-subtle)'};">L${n} · ${t.code}</span>
+      return `<div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:11px 2px;${i !== 0 ? 'border-top:1px solid var(--hairline);' : ''}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;">
+          <div style="display:flex;align-items:center;gap:11px;">
+            <span style="width:12px;height:12px;border-radius:50%;background:${c};${on ? `box-shadow:0 0 9px ${c};` : 'opacity:.4;'}"></span>
+            <span style="font-size:17px;font-weight:600;color:${on ? cmix(c, 55) : 'var(--fg-subtle)'};">L${n} · ${t.code}</span>
           </div>
-          <span style="font-family:var(--mono);font-size:16px;font-weight:700;color:${on ? 'var(--fg)' : 'var(--fg-faint)'};">${SW.fmt(v)}</span>
+          <span style="font-family:var(--mono);font-size:24px;font-weight:700;color:${on ? 'var(--fg)' : 'var(--fg-faint)'};">${SW.fmt(v)}</span>
         </div>
-        <div style="height:5px;border-radius:3px;background:rgba(255,255,255,0.05);overflow:hidden;"><div style="height:100%;width:${w}%;background:${c};${on ? `box-shadow:0 0 8px ${c};` : 'opacity:.3;'}border-radius:3px;"></div></div>
+        <div style="height:7px;border-radius:4px;background:rgba(255,255,255,0.05);overflow:hidden;"><div style="height:100%;width:${w}%;background:${c};${on ? `box-shadow:0 0 8px ${c};` : 'opacity:.3;'}border-radius:4px;"></div></div>
       </div>`;
     }).join('');
     const countersCard = card({ title: 'Level Counters', sub: 'Active cases by tier', accent: 'cyan' }, counterBody);
@@ -1135,10 +1147,10 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     const escCases = (d.cases || []).filter(c => c.level >= 4);
     const escCard = card({ title: 'Escalation Strip', sub: 'Critical only · L4 / L5', accent: 'red', class: 'grow' },
       escN === 0
-        ? h('div', { class: 'flex col center', style: { height: '100%', gap: '12px', color: 'var(--fg-subtle)' } },
-            h('div', { style: { fontSize: '34px' } }, '✓'),
-            h('div', { style: { fontSize: '15px', fontWeight: '600', color: 'var(--fg-muted)' } }, 'No Active Escalations'),
-            h('div', { style: { fontSize: '13px' } }, 'No cases at TEVR or Incident level'))
+        ? h('div', { class: 'flex col center', style: { height: '100%', gap: '16px', color: 'var(--fg-subtle)' } },
+            h('div', { style: { fontSize: '52px' } }, '✓'),
+            h('div', { style: { fontSize: '21px', fontWeight: '700', color: 'var(--fg-muted)' } }, 'No Active Escalations'),
+            h('div', { style: { fontSize: '16px' } }, 'No cases at TEVR or Incident level'))
         : escCases.length
           ? h('div', { style: { display: 'flex', flexDirection: 'column', padding: '2px 2px' } },
               ...escCases.map((c, i) => h('div', { class: 'flex between', style: { alignItems: 'center', padding: '9px 4px', borderTop: i ? '1px solid var(--hairline)' : 'none' } },
@@ -1243,21 +1255,29 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
       foot ? h('div', { style: { fontSize: '11px', color: 'var(--fg-faint)' } }, foot) : null);
   }
 
-  // Intensity heatmap: shade each cell by log value within its status column.
-  // Min 10% opacity for very small (>0) values so they stay readable but quiet.
-  function heatCell(v, max, col) {
+  // Heatmap matrix tile. Every queue×status combination is its own bordered rounded tile.
+  //  - NONZERO: shade by log-intensity within the status column, matching colored border,
+  //    bright/white number.
+  //  - ZERO: a dark tile (var(--surface-2)) with a faint border and a dim "0" — so the grid
+  //    always reads as a complete matrix, never blank gaps.
+  function heatTile(v, max, col) {
     const on = v > 0;
-    const inten = on ? Math.log(v + 1) / Math.log(max + 1) : 0;
-    const op = Math.max(10, Math.round(8 + inten * 30));
-    return h('td', { class: 'num' },
-      h('span', {
-        style: {
-          display: 'inline-block', minWidth: '58px', padding: '6px 9px', borderRadius: '7px',
-          fontFamily: 'var(--mono)', fontWeight: '700',
-          background: on ? `color-mix(in srgb, ${col} ${op}%, transparent)` : 'transparent',
-          color: on ? `color-mix(in srgb, ${col} 60%, white)` : 'var(--fg-faint)'
-        }
-      }, SW.fmt(v)));
+    const inten = on ? Math.log(v + 1) / Math.log(max + 1) : 0;        // log scale within column
+    const op = on ? Math.max(16, Math.round(14 + inten * 44)) : 0;     // fill opacity 16–58%
+    const bd = on ? Math.max(40, Math.round(34 + inten * 50)) : 0;     // border opacity 40–84%
+    // Square tile: aspectRatio keeps it 1:1, centered within its grid cell (never stretched).
+    return h('div', {
+      style: {
+        width: '100%', maxWidth: '108px', aspectRatio: '1 / 1', justifySelf: 'center',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        borderRadius: '12px', minHeight: '0',
+        background: on ? `color-mix(in srgb, ${col} ${op}%, var(--surface-2))` : 'var(--surface-2)',
+        border: on ? `1.5px solid color-mix(in srgb, ${col} ${bd}%, transparent)` : '1.5px solid var(--border)',
+        fontFamily: 'var(--mono)', fontWeight: '700', fontSize: '22px',
+        fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
+        color: on ? 'color-mix(in srgb, ' + col + ' 12%, #ffffff)' : 'var(--fg-faint)'
+      }
+    }, on ? SW.fmt(v) : '0');
   }
 
   function render(rootEl, d) {
@@ -1282,68 +1302,90 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     /* lower */
     const lower = h('div', { style: { display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: '18px', minHeight: '0' } });
 
-    // Future-proof: render ALL cases the endpoint returns (no cap); rank by position so it
-    // works whether or not the payload includes a rank field. Density adapts to fit up to ~15 rows.
-    const caseRows = d.cases.map((c) => h('tr', null,
+    // Far-wall legibility: show the top cases only so each row is big and readable from across
+    // the room (rank by position; the backlog count lives in the KPI row above).
+    const shownCases = d.cases.slice(0, 8);
+    // Ellipsizing cell — used for Title (flexible) and Account (capped) so the fixed-layout table
+    // never overflows the card; the right-most Priority / Status-SLA columns always stay visible.
+    const clip = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
+    const caseRows = shownCases.map((c) => h('tr', null,
       h('td', { class: 'mono', style: { color: 'var(--blue)' } }, '#' + c.id),
       h('td', null, badge('L' + c.level + ' · ' + TIER[c.level].name, TIER[c.level].c)),
-      h('td', { class: 'strong', style: { maxWidth: '440px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, c.title),
-      h('td', { class: 'muted' }, c.account),
+      h('td', { class: 'strong', style: clip }, c.title),
+      h('td', { class: 'muted', style: clip }, c.account),
       h('td', null, badge(c.priority, prioCls(c.priority))),
       h('td', null, slaBadge(c.sla)),
     ));
-    const caseDensity = d.cases.length > 12 ? 'compact' : d.cases.length > 10 ? '' : 'roomy';
-    const casesCard = card({ title: 'Action-Required Cases', sub: 'Severe backlog', meta: 'Top ' + d.cases.length, accent: 'red', bodyClass: 'nopad', class: '' },
+    const caseDensity = 'roomy';
+    // table-layout:fixed + a colgroup gives every column a hard width; Title takes the flexible
+    // remainder (auto) and ellipsizes, so nothing is clipped at the card's right edge.
+    const caseCols = h('colgroup', null,
+      h('col', { style: { width: '76px' } }),    // Case
+      h('col', { style: { width: '150px' } }),   // Threat
+      h('col', null),                            // Title (flexible remainder)
+      h('col', { style: { width: '180px' } }),   // Account
+      h('col', { style: { width: '118px' } }),   // Priority
+      h('col', { style: { width: '150px' } }));  // Status / SLA
+    const casesCard = card({ title: 'Action-Required Cases', sub: 'Severe backlog', meta: 'Top ' + shownCases.length, accent: 'red', bodyClass: 'nopad', class: '' },
       h('div', { style: { padding: '2px 8px' } },
-        h('table', { class: 'sw-table ' + caseDensity },
+        h('table', { class: 'sw-table ' + caseDensity, style: { tableLayout: 'fixed', width: '100%' } },
+          caseCols,
           h('thead', null, h('tr', null, h('th', null, 'Case'), h('th', null, 'Threat'), h('th', null, 'Title'), h('th', null, 'Account'), h('th', null, 'Priority'), h('th', null, 'Status / SLA'))),
           h('tbody', null, ...caseRows))));
 
-    const STAT = [['new', 'var(--blue)'], ['answered', 'var(--orange)'], ['suspended', 'var(--violet)'], ['closed', 'var(--green)']];
+    /* Queue Heatmap — a real bordered matrix: one tile per queue×status. The whole thing is
+       a CSS grid: a queue-name column on the left + the 4 status columns, with ~10px gaps so
+       it reads as a grid of cells. A small uppercase header row labels the status columns. */
+    const STAT = [['new', 'var(--blue)', 'New'], ['answered', 'var(--orange)', 'Answered'],
+      ['suspended', 'var(--violet)', 'Suspended'], ['closed', 'var(--green)', 'Closed']];
     const maxByStat = {};
     STAT.forEach(([key]) => { maxByStat[key] = Math.max(1, ...d.queues.map(q => q[key])); });
-    const qRows = d.queues.map(q => h('tr', null,
-      h('td', { class: 'strong', style: { maxWidth: '230px' } }, q.name),
-      ...STAT.map(([key, col]) => heatCell(q[key], maxByStat[key], col))));
-    const heatCard = card({ title: 'Queue Heatmap', sub: 'Cases by queue & status', accent: 'violet', bodyClass: 'nopad' },
-      h('div', { style: { padding: '2px 8px' } },
-        h('table', { class: 'sw-table' },
-          h('thead', null, h('tr', null, h('th', null, 'Queue'),
-            h('th', { class: 'num' }, 'New'), h('th', { class: 'num' }, 'Answered'), h('th', { class: 'num' }, 'Suspended'), h('th', { class: 'num' }, 'Closed'))),
-          h('tbody', null, ...qRows))));
 
-    // Response Summary scorecard (gallery-cases-summary option 1: neutral numbers, colour only in a dot)
-    const netBacklog = k.new24h - k.closed24h;
-    const closurePct = k.new24h ? (k.closed24h / k.new24h * 100) : 0;
-    const activeWorkload = d.queues.reduce((s, q) => s + q.new + q.answered + q.suspended, 0);
-    const resolvedTotal = d.queues.reduce((s, q) => s + q.closed, 0);
-    const summaryCards = [
-      ['Net Backlog · 24h', (netBacklog >= 0 ? '+' : '−') + SW.fmt(Math.abs(netBacklog)), '#ef4444', 'inbound − resolved'],
-      ['Closure Rate', closurePct.toFixed(1) + '%', '#22c55e', SW.fmt(k.closed24h) + ' of ' + SW.fmt(k.new24h)],
-      ['Active Workload', SW.fmt(activeWorkload), '#f59e0b', 'in progress'],
-      ['SLA Breached', SW.fmt(k.slaBreached), '#ef4444', 'past deadline'],
-      ['Near Breach', SW.fmt(k.nearSla), '#eab308', 'exec attention'],
-      ['Resolved · total', SW.fmt(resolvedTotal), '#3b82f6', 'all-time closed'],
-    ];
-    const summaryBody = h('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: 'repeat(3, 1fr)', gap: '14px', height: '100%' } });
-    summaryBody.innerHTML = summaryCards.map(([l, v, c, s]) =>
-      `<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:11px;padding:15px 17px;display:flex;flex-direction:column;justify-content:center;gap:7px;min-height:0;">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-size:10.5px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--fg-subtle);">${l}</div>
-          <span style="width:7px;height:7px;border-radius:50%;flex:0 0 auto;background:${c};"></span>
-        </div>
-        <div style="font-family:Inter;font-weight:700;font-size:30px;line-height:1;font-variant-numeric:tabular-nums;color:var(--fg);">${v}</div>
-        <div style="font-size:10.5px;color:var(--fg-faint);">${s}</div>
-      </div>`).join('');
-    const slaCard = card({ title: 'Response Summary', sub: 'Operational scorecard', class: 'grow', bodyClass: 'pad' }, summaryBody);
+    const GRIDCOLS = 'minmax(0,1.7fr) repeat(4, minmax(84px, 1fr))';
+    const colHead = txt => h('div', {
+      style: {
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '11px', fontWeight: '700', letterSpacing: '0.09em',
+        textTransform: 'uppercase', color: 'var(--fg-subtle)', paddingBottom: '2px'
+      }
+    }, txt);
+    const nameCell = name => h('div', {
+      style: {
+        display: 'flex', alignItems: 'center', fontWeight: '700', fontSize: '16px',
+        lineHeight: '1.18', color: 'var(--fg)', paddingRight: '10px',
+        // allow up to 2 lines for long queue names, then ellipsis
+        overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical'
+      }
+    }, name);
 
-    const rightCol = h('div', { class: 'flex col gap-m', style: { minHeight: '0' } }, heatCard, slaCard);
+    // Square-tile matrix: rows size to the square tiles (auto), never stretched. The grid is
+    // vertically centered in the card via alignContent — leftover space sits above/below.
+    const heatGrid = h('div', {
+      style: {
+        display: 'grid', gridTemplateColumns: GRIDCOLS, gap: '12px', minHeight: '0',
+        height: '100%', alignContent: 'center',
+        gridTemplateRows: 'auto repeat(' + d.queues.length + ', auto)'
+      }
+    });
+    // header row: blank name slot + 4 status labels
+    heatGrid.appendChild(h('div'));
+    STAT.forEach(([, , label]) => heatGrid.appendChild(colHead(label)));
+    // one row per queue: name cell + 4 heat tiles
+    d.queues.forEach(q => {
+      heatGrid.appendChild(nameCell(q.name));
+      STAT.forEach(([key, col]) => heatGrid.appendChild(heatTile(q[key], maxByStat[key], col)));
+    });
+    // The Queue Heatmap is the only widget in the right column — fill the full lower-grid height.
+    const heatCard = card({ title: 'Queue Heatmap', sub: 'Cases by queue & status', accent: 'violet', bodyClass: 'pad', class: 'grow' },
+      heatGrid);
+
+    const rightCol = h('div', { class: 'flex col', style: { minHeight: '0' } }, heatCard);
     lower.appendChild(casesCard); lower.appendChild(rightCol);
     main.appendChild(kpis); main.appendChild(lower);
     rootEl.appendChild(root);
   }
   // Loading skeleton (Class A — normally instant from window.initialData; this is for the
-  // all-walls-loading view / refresh fallback). KPI row, then cases table + heatmap/summary.
+  // all-walls-loading view / refresh fallback). KPI row, then cases table + full-height heatmap.
   const skel = {
     topbar: { title: 'Cases / Response Command', sub: 'Triage & SLA Posture', status: { loading: true } },
     rows: 'auto 1fr',
@@ -1351,10 +1393,7 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
       { raw: 'kpiRow', n: 6 },
       { grid: '1.55fr 1fr', cards: [
         { title: 'Action-Required Cases', sub: 'Severe backlog', meta: true, accent: 'red', archetype: 'table', rows: 10, tcols: 6, bodyClass: 'nopad' },
-        { stack: [
-          { title: 'Queue Heatmap', sub: 'Cases by queue & status', accent: 'violet', archetype: 'table', rows: 5, tcols: 5, bodyClass: 'nopad' },
-          { title: 'Response Summary', sub: 'Operational scorecard', archetype: 'summary6', bodyClass: 'pad', grow: true },
-        ] },
+        { title: 'Queue Heatmap', sub: 'Cases by queue & status', accent: 'violet', archetype: 'table', rows: 5, tcols: 5, bodyClass: 'nopad', grow: true },
       ] },
     ],
   };
@@ -1405,6 +1444,53 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
 (function () {
   const { h, svg, card, badge, shell, sevColor, sevClass } = window.SW;
   const MW = 1000, MH = 500;
+
+  // ---- country flags (real images, not unicode emoji — Windows can't render flag emoji) ----
+  // Map the feed's country NAME (or an already-2-letter code) -> ISO 3166-1 alpha-2, then pull a
+  // crisp little PNG from flagcdn (same external-asset model as the Google-fonts import). Unknown
+  // countries simply render no flag (graceful). Covers the common attack-source nations + majors.
+  const ISO2 = {
+    'china': 'cn', 'united states': 'us', 'united states of america': 'us', 'usa': 'us', 'us': 'us',
+    'united kingdom': 'gb', 'uk': 'gb', 'great britain': 'gb', 'england': 'gb',
+    'germany': 'de', 'netherlands': 'nl', 'the netherlands': 'nl', 'holland': 'nl',
+    'france': 'fr', 'russia': 'ru', 'russian federation': 'ru', 'singapore': 'sg', 'brazil': 'br',
+    'india': 'in', 'japan': 'jp', 'south korea': 'kr', 'korea': 'kr', 'republic of korea': 'kr',
+    'north korea': 'kp', 'canada': 'ca', 'australia': 'au', 'spain': 'es', 'italy': 'it',
+    'poland': 'pl', 'ukraine': 'ua', 'turkey': 'tr', 'türkiye': 'tr', 'iran': 'ir', 'iraq': 'iq',
+    'indonesia': 'id', 'vietnam': 'vn', 'viet nam': 'vn', 'thailand': 'th', 'taiwan': 'tw',
+    'hong kong': 'hk', 'mexico': 'mx', 'argentina': 'ar', 'chile': 'cl', 'colombia': 'co',
+    'peru': 'pe', 'venezuela': 've', 'panama': 'pa', 'costa rica': 'cr', 'guatemala': 'gt',
+    'honduras': 'hn', 'el salvador': 'sv', 'nicaragua': 'ni', 'dominican republic': 'do',
+    'ecuador': 'ec', 'bolivia': 'bo', 'uruguay': 'uy', 'paraguay': 'py',
+    'south africa': 'za', 'nigeria': 'ng', 'egypt': 'eg', 'morocco': 'ma', 'kenya': 'ke',
+    'saudi arabia': 'sa', 'united arab emirates': 'ae', 'uae': 'ae', 'israel': 'il',
+    'pakistan': 'pk', 'bangladesh': 'bd', 'philippines': 'ph', 'malaysia': 'my',
+    'sweden': 'se', 'norway': 'no', 'finland': 'fi', 'denmark': 'dk', 'ireland': 'ie',
+    'belgium': 'be', 'switzerland': 'ch', 'austria': 'at', 'portugal': 'pt', 'greece': 'gr',
+    'czech republic': 'cz', 'czechia': 'cz', 'romania': 'ro', 'hungary': 'hu', 'bulgaria': 'bg',
+    'serbia': 'rs', 'croatia': 'hr', 'slovakia': 'sk', 'slovenia': 'si', 'lithuania': 'lt',
+    'latvia': 'lv', 'estonia': 'ee', 'iceland': 'is', 'luxembourg': 'lu', 'moldova': 'md',
+    'belarus': 'by', 'kazakhstan': 'kz', 'new zealand': 'nz', 'cyprus': 'cy', 'malta': 'mt'
+  };
+  function iso2(country) {
+    const s = String(country || '').trim().toLowerCase();
+    if (!s) return null;
+    if (/^[a-z]{2}$/.test(s) && !ISO2[s]) return s;   // already a 2-letter code
+    return ISO2[s] || null;
+  }
+  function flagImg(country) {
+    const code = iso2(country);
+    if (!code) return null;
+    return h('img', {
+      src: 'https://flagcdn.com/w40/' + code + '.png',
+      alt: code.toUpperCase(), loading: 'eager',
+      style: {
+        width: '26px', height: '17px', flex: '0 0 auto', objectFit: 'cover',
+        borderRadius: '3px', border: '1px solid rgba(255,255,255,0.22)',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.55)'
+      }
+    });
+  }
   // NO hardcoded geography. Every source AND destination point comes from the wall's own
   // get-monitor-wall-map-data response (real per-IP geolocation: start_lat/lon -> end_lat/lon),
   // exactly like the original page feeds its Leaflet migrationLayer. We only PROJECT those
@@ -1413,6 +1499,20 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
   // color field — so the map matches every other wall (low=yellow, med=orange, high=red, crit=pink).
   const ll = (lon, lat) => [(lon + 180) / 360 * MW, (90 - lat) / 180 * MH];
   const fin = n => { const v = +n; return isFinite(v) ? v : null; };
+
+  // The ORIGINAL map window's severity colours (NOT the canonical SOC palette the other walls use):
+  // low = blue, high = orange, informational = purple, blocked = red. Used for the offline fallback
+  // arcs, the feed severity pills, and the legend so they match what the deployed live Leaflet paints.
+  const MAP_COL = { low: '#3b82f6', high: '#f59e0b', informational: '#8b5cf6', info: '#8b5cf6', blocked: '#ef4444', medium: '#f59e0b', critical: '#ef4444' };
+  function mapColor(s) {
+    const k = String(s || '').split(',')[0].trim().toLowerCase();
+    if (MAP_COL[k]) return MAP_COL[k];
+    if (k.indexOf('info') !== -1) return MAP_COL.informational;
+    if (k.indexOf('block') !== -1) return MAP_COL.blocked;
+    if (k.indexOf('high') !== -1) return MAP_COL.high;
+    if (k.indexOf('low') !== -1) return MAP_COL.low;
+    return MAP_COL.low;
+  }
 
   function worldMap(d) {
     const W = window.SW_WORLD || { dots: [], GW: 1, GH: 1 };
@@ -1440,57 +1540,151 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     }
     g.appendChild(land);
 
+    paintArcs(g, d);
+    return g;
+  }
+
+  // Paint the attack arcs + destination pulses onto an SVG group — shared by the dot-grid fallback
+  // and the image-basemap fallback. Thicker/brighter/glowing than before so the offline preview
+  // reads like the original page's thick migration arcs (the deployed wall uses the live map).
+  function paintArcs(g, d) {
+    if (!g.querySelector('#hubg')) {
+      const defs = svg('defs');
+      defs.innerHTML = '<radialGradient id="hubg" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#22d3ee"/><stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/></radialGradient>';
+      g.appendChild(defs);
+    }
     const arcs = svg('g');
-    const hubs = {};      // distinct destination POPs, keyed by rounded real coords: "lat,lon" -> {x,y}
-    // cap travelling particles (SMIL animateMotion is the costly part) — spread evenly across events
+    const hubs = {};      // distinct destination POPs, keyed by rounded real coords -> {x,y}
     const dotStride = Math.max(1, Math.ceil(d.feed.length / 56));
-    // NOTE perf: arcs are STATIC route-lines (painted once). Motion is carried only by the capped
-    // particle set below. No per-arc filters. This keeps ~200 arcs cheap.
     d.feed.forEach((f, i) => {
       const sLat = fin(f.sLat), sLon = fin(f.sLon), eLat = fin(f.eLat), eLon = fin(f.eLon);
       if (sLat == null || sLon == null || eLat == null || eLon == null) return;   // need real geo
-      const [x1, y1] = ll(sLon, sLat);   // REAL source point (no marker — just where the arc starts)
+      const [x1, y1] = ll(sLon, sLat);   // REAL source point
       const [x2, y2] = ll(eLon, eLat);   // REAL destination point
-      const col = sevColor(f.severity);   // canonical severity colour
-      // gentle bow so overlapping src->dst pairs separate a little (purely cosmetic, not positional)
+      const col = mapColor(f.severity);   // original map's severity colour (low=blue, high=orange…)
       const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
       const dx = x2 - x1, dy = y2 - y1; const len = Math.hypot(dx, dy) || 1;
       const lift = Math.min(150, len * 0.32);
       const cx = mx + (-dy / len) * lift, cy = my + (dx / len) * lift - 18;
       const path = `M ${x1.toFixed(1)} ${y1.toFixed(1)} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`;
-      arcs.appendChild(svg('path', { d: path, fill: 'none', stroke: col, 'stroke-width': f.severity === 'critical' ? 2 : 1.4, 'stroke-linecap': 'round', opacity: 0.32, 'stroke-dasharray': '5 9' }));
+      // soft wide glow underlay + bright solid core line (thicker than the old thin dashed arcs)
+      arcs.appendChild(svg('path', { d: path, fill: 'none', stroke: col, 'stroke-width': f.severity === 'critical' ? 6 : 4.5, 'stroke-linecap': 'round', opacity: 0.16, style: 'filter:blur(2px);' }));
+      arcs.appendChild(svg('path', { d: path, fill: 'none', stroke: col, 'stroke-width': f.severity === 'critical' ? 2.6 : 1.9, 'stroke-linecap': 'round', opacity: 0.62 }));
       // travelling particle — capped subset; mini dot, same hue as its arc but brighter
       if (f.animate !== false && i % dotStride === 0) {
         const dur = (2.6 + (i % 5) * 0.5 + ((i * 37) % 13) / 13 * 1.4).toFixed(1);
-        const dot = svg('circle', { r: f.severity === 'critical' ? 2.2 : 1.8, fill: `color-mix(in srgb, ${col} 65%, white)` });
+        const dot = svg('circle', { r: f.severity === 'critical' ? 2.8 : 2.2, fill: `color-mix(in srgb, ${col} 70%, white)`, style: `filter:drop-shadow(0 0 4px ${col});` });
         dot.appendChild(svg('animateMotion', { dur: dur + 's', repeatCount: 'indefinite', path, rotate: 'auto' }));
         arcs.appendChild(dot);
       }
-      // register the destination POP — key by PROJECTED pixel (rounded) so points that land on
-      // the same spot draw a single marker (no doubled-up intensity from overlapping bursts)
       const hk = Math.round(x2 / 2) * 2 + ',' + Math.round(y2 / 2) * 2;
       if (!hubs[hk]) hubs[hk] = { x: x2, y: y2 };
     });
     g.appendChild(arcs);
-    // destination POP markers only (cyan burst + blip + core) — no labels, no source markers
+    // destination POP markers (cyan burst + blip + core)
     Object.keys(hubs).forEach(hk => {
       const H = hubs[hk];
-      // 50% dimmer + 50% smaller ping radius + 50% smaller dot than before
-      g.appendChild(svg('circle', { cx: H.x, cy: H.y, r: 12, fill: 'url(#hubg)', opacity: 0.3 }));
-      g.appendChild(svg('circle', { cx: H.x, cy: H.y, r: 7.5, fill: 'none', stroke: '#22d3ee', 'stroke-width': 1.2, opacity: 0.25, style: 'transform-box:fill-box;transform-origin:center;animation:blip 2.8s ease-out infinite;' }));
-      g.appendChild(svg('circle', { cx: H.x, cy: H.y, r: 2.25, fill: '#22d3ee', opacity: 0.6, style: 'filter:drop-shadow(0 0 5px #22d3ee);' }));
+      g.appendChild(svg('circle', { cx: H.x, cy: H.y, r: 14, fill: 'url(#hubg)', opacity: 0.45 }));
+      g.appendChild(svg('circle', { cx: H.x, cy: H.y, r: 8, fill: 'none', stroke: '#22d3ee', 'stroke-width': 1.4, opacity: 0.35, style: 'transform-box:fill-box;transform-origin:center;animation:blip 2.8s ease-out infinite;' }));
+      g.appendChild(svg('circle', { cx: H.x, cy: H.y, r: 2.6, fill: '#22d3ee', opacity: 0.7, style: 'filter:drop-shadow(0 0 5px #22d3ee);' }));
     });
-    return g;
   }
 
-  const counterEb = (t) => h('div', { style: { fontSize: '10px', fontWeight: '600', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--fg-subtle)' } }, t);
+  // Offline preview / no live map: a geographic basemap (real equirectangular world image when
+  // render.js injects window.SW_WORLD_IMG, else the dot-grid world) with the glowing arcs on top.
+  function fallbackMap(d) {
+    const img = window.SW_WORLD_IMG;
+    if (!img) return worldMap(d);                       // no image available -> dot-grid world
+    const wrap = h('div', { style: { position: 'absolute', inset: '0', overflow: 'hidden', background: '#0a0a0c' } });
+    // colorless (black & grey) basemap to match the original Leaflet (CARTO dark) look
+    wrap.appendChild(h('img', { src: img, style: {
+      position: 'absolute', inset: '0', width: '100%', height: '100%', objectFit: 'fill',
+      filter: 'grayscale(1) brightness(0.42) contrast(1.18)'
+    } }));
+    // subtle dark vignette so the grey basemap deepens at the edges and the arcs pop
+    wrap.appendChild(h('div', { style: { position: 'absolute', inset: '0', background: 'radial-gradient(125% 120% at 50% 32%, rgba(10,10,12,0.20), rgba(6,7,9,0.74))' } }));
+    const g = svg('svg', { viewBox: `0 0 ${MW} ${MH}`, width: '100%', height: '100%', preserveAspectRatio: 'none', style: 'position:absolute;inset:0;display:block;' });
+    paintArcs(g, d);
+    wrap.appendChild(g);
+    return wrap;
+  }
+
+  /* ---- DEPLOYED: reuse the wall's OWN original Leaflet map (the dark basemap + thick glowing
+     migration arcs the boss likes) instead of our SVG. In the userscript overlay the page's DOM
+     stays intact underneath, so we relocate the live `.leaflet-container` into a PERSISTENT fixed
+     layer kept aligned over our map card's body. A persistent layer (outside boot's re-rendered
+     overlay node) means the live map node survives every card rebuild. The eye-toggle (show
+     original) returns it to the page so the underlying wall is whole again. Offline there is no
+     live Leaflet, so render() draws fallbackMap() instead. (Verify on the live wall over VPN.) */
+  const LIVE = { node: null, home: null, homeNext: null, layer: null, hidden: false, timer: null };
+  function findLiveMap() { try { return document.querySelector('.leaflet-container'); } catch (e) { return null; } }
+  function currentTarget() { try { return document.querySelector('[data-sw-maptarget]'); } catch (e) { return null; } }
+  function ensureLayer() {
+    if (LIVE.layer && LIVE.layer.parentNode) return LIVE.layer;
+    const L = document.createElement('div');
+    L.id = 'sw-livemap';
+    L.style.cssText = 'position:fixed;z-index:2147483646;overflow:hidden;background:#0a0a0c;' +
+      'border-radius:0 0 13px 13px;pointer-events:none;display:none;';
+    (document.body || document.documentElement).appendChild(L);
+    LIVE.layer = L;
+    return L;
+  }
+  function alignLayer() {
+    const L = LIVE.layer; if (!L || LIVE.hidden) return;
+    const t = currentTarget(); if (!t || !t.isConnected) { L.style.display = 'none'; return; }
+    const r = t.getBoundingClientRect();
+    if (r.width < 4 || r.height < 4) return;
+    L.style.left = r.left + 'px'; L.style.top = r.top + 'px';
+    L.style.width = r.width + 'px'; L.style.height = r.height + 'px';
+    L.style.display = 'block';
+  }
+  function kickResize() {
+    [30, 250, 600].forEach(ms => setTimeout(() => { try { window.dispatchEvent(new Event('resize')); } catch (e) {} }, ms));
+  }
+  // returns true if a live Leaflet map exists (deployed) and was attached; false offline
+  function attachLiveMap() {
+    try {
+      const node = LIVE.node || findLiveMap();
+      if (!node) return false;
+      if (!LIVE.node) { LIVE.node = node; LIVE.home = node.parentNode; LIVE.homeNext = node.nextSibling; }
+      if (LIVE.hidden) return true;                     // overlay hidden -> leave map in the page
+      const L = ensureLayer();
+      if (node.parentNode !== L) {
+        node.style.position = 'absolute'; node.style.inset = '0';
+        node.style.width = '100%'; node.style.height = '100%'; node.style.margin = '0';
+        L.appendChild(node);
+        kickResize();                                   // let Leaflet recompute size for the new box
+      }
+      alignLayer();
+      if (!LIVE.timer) LIVE.timer = setInterval(alignLayer, 300);   // stay aligned across re-renders
+      return true;
+    } catch (e) { return false; }
+  }
+  function detachLiveMap() {                            // eye -> show original: hand the map back
+    try {
+      if (LIVE.node && LIVE.home) {
+        LIVE.node.style.position = ''; LIVE.node.style.inset = '';
+        LIVE.node.style.width = ''; LIVE.node.style.height = ''; LIVE.node.style.margin = '';
+        LIVE.home.insertBefore(LIVE.node, LIVE.homeNext || null);
+        kickResize();
+      }
+      if (LIVE.layer) LIVE.layer.style.display = 'none';
+    } catch (e) {}
+  }
+  function onEye(hidden) {
+    LIVE.hidden = !!hidden;
+    if (hidden) detachLiveMap();
+    else if (LIVE.node) attachLiveMap();
+  }
+
+  const counterEb = (t) => h('div', { style: { fontSize: '13px', fontWeight: '600', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--fg-subtle)' } }, t);
   const counterMetric = (v, col, name, key) => h('div', null,
-    h('div', { 'data-ctr': key, style: { fontFamily: 'var(--mono)', fontSize: '24px', fontWeight: '800', color: `color-mix(in srgb, ${col} 84%, white)`, lineHeight: '1' } }, SW.fmt(v)),
-    h('div', { style: { fontSize: '9.5px', letterSpacing: '0.06em', textTransform: 'uppercase', color: `color-mix(in srgb, ${col} 60%, white)`, marginTop: '4px' } }, name));
+    h('div', { 'data-ctr': key, style: { fontFamily: 'var(--mono)', fontSize: '36px', fontWeight: '800', color: `color-mix(in srgb, ${col} 84%, white)`, lineHeight: '1' } }, SW.fmt(v)),
+    h('div', { style: { fontSize: '12px', letterSpacing: '0.06em', textTransform: 'uppercase', color: `color-mix(in srgb, ${col} 60%, white)`, marginTop: '6px' } }, name));
   function counterTile(label, c, prefix) {
-    return h('div', { style: { flex: '1', padding: '0 18px' } },
+    return h('div', { style: { flex: '1', padding: '0 22px' } },
       counterEb(label),
-      h('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '11px' } },
+      h('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '14px' } },
         counterMetric(c.critical, '#dc2626', 'Critical', prefix + '-critical'),  // tailwind red-600
         counterMetric(c.high, '#ea580c', 'High', prefix + '-high')));            // tailwind orange-600
   }
@@ -1510,37 +1704,35 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
         counterTile('Last 24h', d.counters['24h'], '24h'),
         counterDivider(),
         counterTile('Last 7d', d.counters['7d'], '7d')));
-    // Legend lists the severities actually present, coloured by the canonical palette (sevColor),
-    // so it always matches the arcs and the rest of the walls.
-    const SEV_RANK = { blocked: 0, critical: 1, high: 2, medium: 3, informational: 4, low: 5 };
-    const rank = s => (SEV_RANK[s] === undefined ? 9 : SEV_RANK[s]);
-    const sevsSeen = {};
-    (d.feed || []).forEach(f => {
-      const sev = String(f.severity || '').split(',')[0].trim().toLowerCase();
-      if (sev) sevsSeen[sev] = true;
-    });
-    let legendItems = Object.keys(sevsSeen).sort((a, b) => rank(a) - rank(b)).map(sev => [sev, sevColor(sev)]);
-    if (!legendItems.length) legendItems = [['high', sevColor('high')], ['informational', sevColor('info')], ['low', sevColor('low')]];
+    // Legend = the original window's exact categories/colours: blocked=red, high=orange,
+    // informational=purple, low=blue. Matches the live map's arcs (and our offline fallback arcs).
+    const legendItems = [['Blocked', MAP_COL.blocked], ['High', MAP_COL.high], ['Informational', MAP_COL.informational], ['Low', MAP_COL.low]];
     const legend = h('div', {
       style: {
-        position: 'absolute', left: '16px', bottom: '14px', display: 'flex', gap: '16px',
-        padding: '9px 14px', borderRadius: '10px', background: 'rgba(8,10,14,0.72)',
+        position: 'absolute', left: '18px', bottom: '16px', display: 'flex', gap: '20px',
+        padding: '11px 18px', borderRadius: '11px', background: 'rgba(8,10,14,0.72)',
         border: '1px solid var(--border)', backdropFilter: 'blur(4px)'
       }
     }, ...legendItems.map(([l, c]) =>
-      h('div', { style: { display: 'flex', alignItems: 'center', gap: '7px', fontSize: '11.5px', color: 'var(--fg-muted)', textTransform: 'capitalize', letterSpacing: '0.04em' } },
-        h('span', { style: { width: '9px', height: '9px', borderRadius: '50%', background: c, boxShadow: '0 0 8px ' + c } }), l)));
+      h('div', { style: { display: 'flex', alignItems: 'center', gap: '9px', fontSize: '14px', color: 'var(--fg-muted)', letterSpacing: '0.04em' } },
+        h('span', { style: { width: '11px', height: '11px', borderRadius: '50%', background: c, boxShadow: '0 0 9px ' + c } }), l)));
     const hubTag = h('div', {
       style: {
-        position: 'absolute', right: '16px', bottom: '14px', display: 'flex', alignItems: 'center', gap: '8px',
-        padding: '9px 14px', borderRadius: '10px', background: 'rgba(8,10,14,0.72)',
-        border: '1px solid var(--border)', fontSize: '11.5px', color: 'var(--fg-muted)', letterSpacing: '0.04em'
+        position: 'absolute', right: '18px', bottom: '16px', display: 'flex', alignItems: 'center', gap: '9px',
+        padding: '11px 18px', borderRadius: '11px', background: 'rgba(8,10,14,0.72)',
+        border: '1px solid var(--border)', fontSize: '14px', color: 'var(--fg-muted)', letterSpacing: '0.04em'
       }
-    }, h('span', { style: { width: '9px', height: '9px', borderRadius: '50%', background: '#22d3ee', boxShadow: '0 0 10px #22d3ee' } }),
+    }, h('span', { style: { width: '11px', height: '11px', borderRadius: '50%', background: '#22d3ee', boxShadow: '0 0 10px #22d3ee' } }),
       'Defended · ' + ([...new Set((d.feed || []).map(f => f.client).filter(Boolean))].slice(0, 3).join(' · ') || 'assets'));
-    const mapSvgEl = worldMap(d);   // display-only — zoom/pan removed (it was unused on the wall)
-    const mapCard = card({ title: 'Live Attack Map', sub: 'Inbound · MSS-DDOS', accent: 'cyan', meta: 'realtime', bodyClass: 'nopad', class: 'grow' },
-      h('div', { style: { position: 'relative', height: '100%', minHeight: '0' } }, mapSvgEl, legend, hubTag));
+    // The map body is the alignment target for the live-map layer (deployed) AND the host for the
+    // offline geographic fallback. `data-sw-maptarget` lets the persistent live-map layer find it.
+    const mapBody = h('div', { 'data-sw-maptarget': '1', style: { position: 'relative', height: '100%', minHeight: '0', overflow: 'hidden' } });
+    if (!attachLiveMap()) {            // false offline -> draw the geographic fallback + chrome
+      mapBody.appendChild(fallbackMap(d));
+      mapBody.appendChild(legend);
+      mapBody.appendChild(hubTag);
+    }
+    const mapCard = card({ title: 'Live Attack Map', sub: 'Inbound · MSS-DDOS', accent: 'cyan', meta: 'realtime', bodyClass: 'nopad', class: 'grow' }, mapBody);
     const left = h('div', { class: 'flex col gap-m', style: { minHeight: '0' } }, counters, mapCard);
 
     /* RIGHT: live feed — NOT a table. The column header is a static element OUTSIDE the scroll
@@ -1550,15 +1742,17 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     const FEED_COLS = '1.2fr 1.45fr 1.1fr 0.85fr';   // Client | Source | Target | Severity
     const sevBadge = f => {
       const label = String(f.severity || '').split(',')[0].trim();
-      return h('span', { class: 'sw-badge', style: '--c:' + sevColor(label) + ';' }, h('span', { class: 'dot' }), label);
+      return h('span', { class: 'sw-badge', style: '--c:' + mapColor(label) + ';' }, h('span', { class: 'dot' }), label);
     };
     const ell = { minWidth: '0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
     const mkRow = f => h('div', { class: 'sw-feed-row', style: { gridTemplateColumns: FEED_COLS } },
       h('div', { class: 'strong', style: ell }, f.client),
       h('div', { style: { minWidth: '0' } },
-        h('div', { class: 'mono', style: { fontSize: '12px', color: 'var(--fg-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, f.srcIp),
-        h('div', { class: 'sw-subtle', style: { fontSize: '11px', textTransform: 'capitalize' } }, f.country)),
-      h('div', { class: 'mono muted', style: { fontSize: '12px' } }, f.dst),
+        h('div', { class: 'mono', style: { fontSize: '15px', color: 'var(--fg-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, f.srcIp),
+        h('div', { class: 'flex', style: { alignItems: 'center', gap: '8px', marginTop: '3px', minWidth: '0' } },
+          flagImg(f.country),
+          h('div', { class: 'sw-subtle', style: { fontSize: '13.5px', textTransform: 'capitalize', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: '0' } }, f.country))),
+      h('div', { class: 'mono muted', style: { fontSize: '15px' } }, f.dst),
       h('div', null, sevBadge(f)));
     const feedHead = h('div', { class: 'sw-feed-head', style: { gridTemplateColumns: FEED_COLS } },
       h('div', null, 'Client'), h('div', null, 'Source'), h('div', null, 'Target'), h('div', null, 'Severity'));
@@ -1573,15 +1767,21 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
       if (singleH <= scrollArea.clientHeight - 4) return;            // fits — no scroll needed
       d.feed.forEach(f => rowsInner.appendChild(mkRow(f)));          // second identical set for the loop
       rowsInner.style.willChange = 'transform';
-      const speed = 0.7; // px/frame (~42px/s)
-      let pos = 0;
-      (function tick() {
+      // Fast marquee (per request): scroll one full visible panel-height every PANEL_MS (~2s).
+      // Time-based so the rate is the same regardless of frame rate; dt clamped so a tab stall
+      // doesn't produce a big jump.
+      const PANEL_MS = 2000;
+      let pos = 0, last = null;
+      function tick(ts) {
         if (!scrollArea.isConnected) return;
-        pos += speed;
+        if (last == null) last = ts;
+        const dt = Math.min(100, ts - last); last = ts;
+        pos += scrollArea.clientHeight * (dt / PANEL_MS);
         if (pos >= singleH) pos -= singleH;
         rowsInner.style.transform = 'translateY(' + (-pos).toFixed(2) + 'px)';
         requestAnimationFrame(tick);
-      })();
+      }
+      requestAnimationFrame(tick);
     });
     const feedCard = card({ title: 'Live Attack Feed', sub: 'Source → Destination', accent: 'red', meta: d.feed.length + ' events', bodyClass: 'nopad', class: 'grow' }, feedWrap);
 
@@ -1686,7 +1886,7 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
 
   (window.SW_WALLS = window.SW_WALLS || []).push({
     slug: '05-map-threat-activity', match: /^\/map-wall\//, cls: 'B',
-    endpoints: ['get-monitor-wall-map-data', 'get-widget-data-wall'], adapt, render, skel, signature, refresh
+    endpoints: ['get-monitor-wall-map-data', 'get-widget-data-wall'], adapt, render, skel, signature, refresh, onEye
   });
 })();
 
@@ -1703,15 +1903,15 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
   function ringSvg(value, max, color, displayText, size, sw) {
     const R0 = (size - sw) / 2 - 1, cx = size / 2, CIRC = 2 * Math.PI * R0, f = Math.max(0, Math.min(1, value / max));
     const el = h('div', { style: { flex: '0 0 auto', width: size + 'px', height: size + 'px' } });
-    el.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${cx}" cy="${cx}" r="${R0}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="${sw}"/><circle cx="${cx}" cy="${cx}" r="${R0}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${(f * CIRC).toFixed(1)} ${CIRC}" transform="rotate(-90 ${cx} ${cx})"/><text x="${cx}" y="${(cx + size * 0.095).toFixed(1)}" text-anchor="middle" font-family="Inter" font-size="${(size * 0.28).toFixed(0)}" font-weight="800" fill="#fafafa">${displayText}</text></svg>`;
+    el.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${cx}" cy="${cx}" r="${R0}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="${sw}"/><circle cx="${cx}" cy="${cx}" r="${R0}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${(f * CIRC).toFixed(1)} ${CIRC}" transform="rotate(-90 ${cx} ${cx})"/><text x="${cx}" y="${(cx + size * 0.105).toFixed(1)}" text-anchor="middle" font-family="Inter" font-size="${(size * 0.30).toFixed(0)}" font-weight="800" fill="#fafafa">${displayText}</text></svg>`;
     return el;
   }
   function gaugeCard(label, value, max, color, unit, display) {
-    return h('div', { class: 'sw-card', style: { flexDirection: 'row', alignItems: 'center', gap: '16px', padding: '14px 18px' } },
-      ringSvg(value, max, color, display != null ? display : value, 92, 6),
+    return h('div', { class: 'sw-card', style: { flexDirection: 'row', alignItems: 'center', gap: '22px', padding: '18px 26px' } },
+      ringSvg(value, max, color, display != null ? display : value, 128, 9),
       h('div', null,
-        h('div', { class: 'sw-kpi__label' }, label),
-        h('div', { style: { fontSize: '15px', color: 'var(--fg-subtle)', marginTop: '6px' } }, unit)));
+        h('div', { class: 'sw-kpi__label', style: { fontSize: '16px' } }, label),
+        h('div', { style: { fontSize: '18px', color: 'var(--fg-subtle)', marginTop: '8px' } }, unit)));
   }
 
   function lineChart(p) {
@@ -1736,18 +1936,18 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     const status = c.down > 0 ? c.down.toFixed(1) + '% down' : c.degraded > 0 ? c.degraded.toFixed(1) + '% degraded' : 'fully operational';
     return h('tr', null,
       h('td', { class: 'strong' },
-        h('span', { class: 'flex', style: { alignItems: 'center', gap: '9px' } },
-          h('span', { style: { width: '9px', height: '9px', borderRadius: '50%', flex: '0 0 auto', background: col } }),
+        h('span', { class: 'flex', style: { alignItems: 'center', gap: '11px' } },
+          h('span', { style: { width: '11px', height: '11px', borderRadius: '50%', flex: '0 0 auto', background: col, boxShadow: `0 0 8px ${col}` } }),
           c.client)),
-      h('td', { class: 'muted', style: { fontSize: '12px' } }, status),
-      h('td', { class: 'num', style: { color: `color-mix(in srgb, ${col} 62%, white)` } }, c.available.toFixed(1) + '%'));
+      h('td', { class: 'muted', style: { fontSize: '13.5px' } }, status),
+      h('td', { class: 'num', style: { color: `color-mix(in srgb, ${col} 62%, white)`, fontWeight: '700' } }, c.available.toFixed(1) + '%'));
   }
 
   function render(rootEl, d) {
     const g = d.gauges;
     const root = shell({ title: 'MSS-CSM Service Health · PRTG', sub: 'Continuous Service Monitoring', account: d.account, status: { ok: g.down === 0, label: g.down > 0 ? g.down + ' Services Down' : 'All Operational' } });
     const main = root._main;
-    main.style.gridTemplateRows = 'auto 1fr 1.12fr';
+    main.style.gridTemplateRows = 'auto 0.92fr 1.2fr';
 
     /* gauges */
     const avail = g.available, total = g.total;
@@ -1757,30 +1957,33 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
       gaugeCard('Down', g.down, total, 'var(--red)', 'Out of service', g.down),
       gaugeCard('Warning', g.warning, total, 'var(--yellow)', 'Degraded sensors', g.warning));
 
-    /* row 2: critical down + degradation */
+    /* row 2: critical down + degradation
+       8 columns is wide — use compact density + nowrap/ellipsis on the text cells
+       (Client/Site, Sensor) so every row stays single-line and the Status badge never clips. */
+    const ell = mw => ({ maxWidth: mw, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' });
     const cdRows = d.criticalDown.map((r, i) => h('tr', null,
       h('td', { class: 'sw-rank' }, i + 1),
       h('td', null, badge(r.priority, sevClass(r.priority))),
-      h('td', null, h('div', { class: 'strong' }, r.client), h('div', { class: 'sw-subtle', style: { fontSize: '12px' } }, r.site)),
-      h('td', { class: 'muted', style: { maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, r.sensor),
+      h('td', { style: ell('170px') }, h('div', { class: 'strong', style: ell('170px') }, r.client), h('div', { class: 'sw-subtle', style: Object.assign({ fontSize: '12px' }, ell('170px')) }, r.site)),
+      h('td', { class: 'muted', style: ell('230px') }, clip(r.sensor, 42)),
       h('td', { class: 'num', style: { color: 'var(--red)', whiteSpace: 'nowrap' } }, r.downtime),
       h('td', null, slaBadge(r.sla)),
       h('td', { class: 'mono', style: { color: 'var(--blue)' } }, '#' + r.case),
       h('td', null, statusBadge(r.status))));
     const cdCard = card({ title: 'Critical Services Down', sub: 'Active outages', accent: 'red', meta: d.criticalDown.length + ' down', bodyClass: 'nopad' },
-      h('div', { style: { padding: '2px 8px' } }, h('table', { class: 'sw-table' },
+      h('div', { style: { padding: '2px 8px' } }, h('table', { class: 'sw-table compact' },
         h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, 'Priority'), h('th', null, 'Client / Site'), h('th', null, 'Sensor / Message'), h('th', { class: 'num' }, 'Downtime'), h('th', null, 'SLA'), h('th', null, 'Case'), h('th', null, 'Status'))),
         h('tbody', null, ...cdRows))));
 
     const degRows = d.degradation.map((r, i) => h('tr', null,
       h('td', { class: 'sw-rank' }, i + 1),
       h('td', null, badge(r.priority, sevClass(r.priority))),
-      h('td', { class: 'strong' }, r.client),
-      h('td', { class: 'muted', style: { maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, r.sensor),
+      h('td', { class: 'strong', style: ell('150px') }, r.client),
+      h('td', { class: 'muted', style: ell('180px') }, clip(r.sensor, 32)),
       h('td', null, badge('Warning', 'is-warn')),
       h('td', { class: 'mono', style: { color: 'var(--blue)' } }, '#' + r.case)));
     const degCard = card({ title: 'Service Degradation & Warnings', sub: 'Sensor warnings', accent: 'yellow', bodyClass: 'nopad' },
-      h('div', { style: { padding: '2px 8px' } }, h('table', { class: 'sw-table' },
+      h('div', { style: { padding: '2px 8px' } }, h('table', { class: 'sw-table compact' },
         h('thead', null, h('tr', null, h('th', null, '#'), h('th', null, 'Pri'), h('th', null, 'Client'), h('th', null, 'Sensor'), h('th', null, 'Issue'), h('th', null, 'Case'))),
         h('tbody', null, ...degRows))));
 
@@ -1792,21 +1995,21 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
     const infNormal = /normal/i.test(inf.status);
     const infCol = infNormal ? 'var(--fg-subtle)' : 'var(--green)';
     const infraCard = card({ title: 'Infrastructure & Certificates', accent: infNormal ? undefined : 'green' },
-      h('div', { class: 'flex col center', style: { height: '100%', gap: '12px', justifyContent: 'center' } },
-        h('div', { style: { fontSize: '34px', lineHeight: '1', color: infCol } }, '✓'),
-        h('div', { class: 'sw-subtle', style: { fontSize: '13px', textAlign: 'center', maxWidth: '220px' } }, inf.message)));
+      h('div', { class: 'flex col center', style: { height: '100%', gap: '20px', justifyContent: 'center' } },
+        h('div', { style: { fontSize: '64px', lineHeight: '1', color: infCol } }, '✓'),
+        h('div', { class: 'sw-subtle', style: { fontSize: '17px', lineHeight: '1.45', textAlign: 'center', maxWidth: '250px' } }, inf.message)));
 
     const byCard = card({ title: 'Availability by Client', accent: 'cyan', bodyClass: 'nopad' },
-      h('div', { style: { padding: '2px 8px' } }, h('table', { class: 'sw-table' },
+      h('div', { style: { padding: '2px 8px' } }, h('table', { class: 'sw-table compact' },
         h('thead', null, h('tr', null, h('th', null, 'Client'), h('th', null, 'Status'), h('th', { class: 'num' }, '%'))),
         h('tbody', null, ...d.byClient.map(availBar)))));
 
     const pingCard = card({ title: 'Ping Response Time', sub: 'ms · last hours', accent: 'cyan', bodyClass: 'pad' },
-      h('div', { class: 'flex col', style: { height: '100%', gap: '8px' } },
-        h('div', { class: 'flex gap-m', style: { fontSize: '12px' } },
+      h('div', { class: 'flex col', style: { height: '100%', gap: '14px' } },
+        h('div', { class: 'flex gap-l', style: { fontSize: '17px', fontWeight: '600' } },
           h('span', { style: { color: 'var(--cyan)' } }, '● Avg'),
-          h('span', { style: { color: 'rgba(244,63,94,0.7)' } }, '— Max'),
-          h('span', { style: { color: 'rgba(132,204,22,0.7)' } }, '— Min')),
+          h('span', { style: { color: 'rgba(244,63,94,0.8)' } }, '— Max'),
+          h('span', { style: { color: 'rgba(132,204,22,0.8)' } }, '— Min')),
         h('div', { style: { flex: '1', minHeight: '0' } }, lineChart(d.ping))));
 
     const row3 = h('div', { style: { display: 'grid', gridTemplateColumns: '0.8fr 1.1fr 1.6fr', gap: '18px', minHeight: '0' } }, infraCard, byCard, pingCard);
@@ -1992,8 +2195,8 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
       if (!document.getElementById('sw-anim')) {
         var a = document.createElement('style');
         a.id = 'sw-anim'; a.textContent = '@keyframes sw-pulse{0%,100%{opacity:1}50%{opacity:.25}}' +
-          '.sw-eye{width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-sizing:border-box;' +
-          'border-radius:10px;background:rgba(16,16,20,0.72);border:1px solid rgba(255,255,255,0.14);color:#a1a1aa;' +
+          '.sw-eye{width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-sizing:border-box;' +
+          'border-radius:11px;background:rgba(16,16,20,0.72);border:1px solid rgba(255,255,255,0.14);color:#a1a1aa;' +
           '-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);transition:background .15s,color .15s,border-color .15s}' +
           '.sw-eye:hover{color:#fafafa;background:rgba(28,28,34,0.92);border-color:rgba(255,255,255,0.30)}';
         head.appendChild(a);
@@ -2093,7 +2296,7 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
      One eye sits in the overlay's top bar (the wall's top-right); one restore eye is fixed on the
      real page, shown only while hidden. display:none on the host fully removes our layer, so the
      original wall is visible AND interactive underneath; the restore eye floats above it. */
-  var EYE_SVG = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var EYE_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
   function makeEye(id, title) { var b = document.createElement('div'); b.id = id; b.className = 'sw-eye'; b.title = title; b.setAttribute('role', 'button'); b.innerHTML = EYE_SVG; return b; }
   function addHideEye(root) {
     if (!root || root.querySelector('#sw-eye-hide')) return;
@@ -2105,19 +2308,19 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
   }
   // Place the restore eye at the EXACT on-screen spot/size of the top-bar hide eye (accounting for the
   // contain-scale), so toggling never makes it jump. Derived from the theme: the wall is 1920x1080
-  // scaled by `s` and centered; topbar height 64, padding-right 30, eye 38 -> the hide eye's box
-  // inside the wall is left=1852, top=13, size=38. At fullscreen (s=1) this is exact.
+  // scaled by `s` and centered; topbar height 76, padding-right 34, eye 44 -> the hide eye's box
+  // inside the wall is left=1842, top=16, size=44. At fullscreen (s=1) this is exact.
   function positionRestoreEye() {
     var b = state.showEye; if (!b) return;
     var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080); if (!(s > 0)) s = 1;
     var wallLeft = (window.innerWidth - 1920 * s) / 2, wallTop = (window.innerHeight - 1080 * s) / 2;
     b.style.right = 'auto';
-    b.style.left = (wallLeft + 1852 * s) + 'px';
-    b.style.top = (wallTop + 13 * s) + 'px';
-    b.style.width = (38 * s) + 'px';
-    b.style.height = (38 * s) + 'px';
-    b.style.borderRadius = (10 * s) + 'px';
-    var svg = b.querySelector('svg'); if (svg) { svg.setAttribute('width', 20 * s); svg.setAttribute('height', 20 * s); }
+    b.style.left = (wallLeft + 1842 * s) + 'px';
+    b.style.top = (wallTop + 16 * s) + 'px';
+    b.style.width = (44 * s) + 'px';
+    b.style.height = (44 * s) + 'px';
+    b.style.borderRadius = (11 * s) + 'px';
+    var svg = b.querySelector('svg'); if (svg) { svg.setAttribute('width', 22 * s); svg.setAttribute('height', 22 * s); }
   }
   function ensureShowEye() {
     if (state.showEye && state.showEye.parentNode) { positionRestoreEye(); state.showEye.style.display = state.eyeHidden ? 'flex' : 'none'; return; }
@@ -2132,6 +2335,9 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
   function applyEyeState() {
     if (state.host) state.host.style.display = state.eyeHidden ? 'none' : 'flex';
     ensureShowEye();
+    // let a wall react to the toggle (05 hands its reused live map back to the page when hidden,
+    // and re-claims it when shown). Called on init + every toggle + every place().
+    if (wall && typeof wall.onEye === 'function') { try { wall.onEye(state.eyeHidden); } catch (e) {} }
   }
   function setEye(hidden) {
     state.eyeHidden = hidden;
