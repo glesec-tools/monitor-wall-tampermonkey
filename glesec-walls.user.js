@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GLESEC SKYWATCH Monitor Walls
 // @namespace    glesec-tools
-// @version      1.0.50
+// @version      1.0.51
 // @description  Restyle all 6 GLESEC SKYWATCH SOC monitor walls in place, driven by the walls' own live data. Generated — edit redesign/ source, not this file.
 // @author       GLESEC GOC
 // @match        https://intranet.glesec.com/radar-wall/*
@@ -914,23 +914,54 @@ window.SW_WORLD = {"dots":[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
       h('td', null, badge(g.priority, prioCls(g.priority))),
       h('td', { class: 'num' }, SW.fmt(g.created)),
     ));
-    const table = h('table', { class: 'sw-table' },
+    const table = h('table', { class: 'sw-table', style: { fontSize: '21px' } },
       h('thead', null, h('tr', null,
         h('th', null, 'GNE'), h('th', null, 'Notable Event'),
         h('th', { class: 'num' }, '24h'), h('th', { class: 'num' }, '7d'),
         h('th', null, 'Priority'), h('th', { class: 'num' }, 'Cases'))),
       h('tbody', null, ...rows));
     const gneTable = card({ title: 'Top GNE Types', sub: 'Last 24 hours', accent: 'cyan', meta: d.topGne.length + ' active', bodyClass: 'nopad' }, h('div', { style: { padding: '4px 8px' } }, table));
+    gneTable.style.flex = '0 0 auto';   // keep all its rows; only Event Volume below flexes/scrolls
 
-    // 24h volume bar chart (fills remaining vertical space) — same trimmed set
+    // 24h volume bar chart — bigger type, generous vertical spacing, ALL GNE types. If the rows
+    // overflow the card they auto-scroll smoothly up and down (display wall, no interaction).
     const maxV = Math.max(...d.topGne.map(g => g.c24));
     const barCol = sevColor;   // canonical severity colour
-    const volBars = [...d.topGne].sort((a, b) => b.c24 - a.c24).slice(0, TOP_N).map(g => h('div', { class: 'sw-hbar' },
-      h('div', { class: 'sw-hbar__top' },
-        h('span', { class: 'sw-hbar__name' }, h('span', { class: 'sw-rank', style: { marginRight: '8px' } }, g.gne), g.name),
-        h('span', { class: 'sw-hbar__val' }, SW.fmt(g.c24))),
-      h('div', { class: 'sw-hbar__track' }, h('div', { class: 'sw-hbar__fill', style: { width: Math.max(3, g.c24 / maxV * 100) + '%', background: barCol(g.priority), color: barCol(g.priority) } }))));
-    const volCard = card({ title: 'Event Volume', sub: 'Firings · last 24h', accent: 'blue', class: 'grow' }, h('div', { class: 'sw-hbars' }, ...volBars));
+    const volBars = [...d.topGne].sort((a, b) => b.c24 - a.c24).map(g => h('div', { style: { display: 'flex', flexDirection: 'column', gap: '11px', flex: '0 0 auto' } },
+      h('div', { class: 'flex between', style: { alignItems: 'baseline', gap: '14px' } },
+        h('span', { style: { fontSize: '20px', fontWeight: '600', color: 'var(--fg)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: '0' } },
+          h('span', { class: 'sw-rank', style: { marginRight: '10px', fontSize: '18px' } }, g.gne), g.name),
+        h('span', { style: { fontFamily: 'var(--mono)', fontSize: '23px', fontWeight: '700', color: 'var(--fg-muted)', flex: '0 0 auto' } }, SW.fmt(g.c24))),
+      h('div', { style: { height: '16px', borderRadius: '8px', background: 'var(--surface-3)', overflow: 'hidden', border: '1px solid var(--border)' } },
+        h('div', { style: { height: '100%', width: Math.max(3, g.c24 / maxV * 100) + '%', borderRadius: '8px', background: barCol(g.priority), color: barCol(g.priority), boxShadow: '0 0 10px -2px currentColor' } }))));
+    const volInner = h('div', { style: { display: 'flex', flexDirection: 'column', gap: '24px', padding: '8px 4px 4px' } }, ...volBars);
+    const volScroll = h('div', { style: { flex: '1 1 auto', minHeight: '0', overflow: 'hidden', position: 'relative' } }, volInner);
+    const volBody = h('div', { style: { height: '100%', display: 'flex', flexDirection: 'column', minHeight: '0' } }, volScroll);
+    const volCard = card({ title: 'Event Volume', sub: 'Firings · last 24h', accent: 'blue', class: 'grow' }, volBody);
+    // smooth up/down auto-scroll, only if the bars overflow the available height
+    requestAnimationFrame(function setup() {
+      if (!volScroll.isConnected) { requestAnimationFrame(setup); return; }
+      const overflow = volInner.scrollHeight - volScroll.clientHeight;
+      if (overflow <= 2) return;                       // everything fits — no scroll needed
+      volInner.style.willChange = 'transform';
+      const ease = p => (p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2);   // easeInOutQuad
+      const dwell = 1600;                              // pause at each end (ms)
+      const travel = Math.max(4500, overflow * 26);    // ms to glide top<->bottom (gentle)
+      const cycle = (travel + dwell) * 2;
+      let start = null;
+      function tick(ts) {
+        if (!volScroll.isConnected) return;
+        if (start == null) start = ts;
+        const t = (ts - start) % cycle; let pos;
+        if (t < dwell) pos = 0;                                             // pause at top
+        else if (t < dwell + travel) pos = ease((t - dwell) / travel) * overflow;        // glide down
+        else if (t < dwell * 2 + travel) pos = overflow;                   // pause at bottom
+        else pos = (1 - ease((t - (dwell * 2 + travel)) / travel)) * overflow;            // glide up
+        volInner.style.transform = 'translateY(' + (-pos).toFixed(2) + 'px)';
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
 
     const left = h('div', { class: 'flex col gap-m', style: { minHeight: '0' } }, gneTable, volCard);
 
